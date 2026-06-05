@@ -3,7 +3,7 @@
 // GASへの通信はすべてGET（クエリパラメータ）で行う
 // ============================================================
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwx0iOuHapkoDO73MWriIsX-54HsSkowFqQLSux1FqAn0o4N0EG-ROxvDqj1m2--mpF/exec';
+// GAS_URLはjs/config.jsで設定
 
 let allReports = [];
 let currentReportId = null;

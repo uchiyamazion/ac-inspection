@@ -142,7 +142,7 @@ function collectFormData() {
 }
 
 // ===== Detail =====
-window.viewReport = function(id) {
+window.viewReport = function(id, readOnly) {
   const r = allReports.find(x => x.id === id);
   if (!r) return;
   currentReportId = id;
@@ -155,6 +155,10 @@ window.viewReport = function(id) {
     '<div class="detail-section"><h4>運転データ</h4><div class="detail-grid">' + df('室内吸入温',r.tempIndoorIn!=null?r.tempIndoorIn+' ℃':'',true) + df('室内吹出温',r.tempIndoorOut!=null?r.tempIndoorOut+' ℃':'',true) + df('吐出圧力',r.pressDischarge!=null?r.pressDischarge+' MPa':'',true) + df('吸入圧力',r.pressSuction!=null?r.pressSuction+' MPa':'',true) + df('吐出温',r.tempDischarge!=null?r.tempDischarge+' ℃':'',true) + df('吸入温',r.tempSuction!=null?r.tempSuction+' ℃':'',true) + df('外気温',r.tempOutdoor!=null?r.tempOutdoor+' ℃':'',true) + df('運転電流',r.current!=null?r.current+' A':'',true) + '</div></div>' +
     partsHtml +
     '<div class="detail-section"><h4>作業確認</h4><div class="detail-grid">' + df('ステータス',r.status) + df('作業者',r.worker) + df('確認者',r.confirmer) + '</div></div>';
+  // 閲覧専用モード（QRアクセス時）
+  const editBtn = document.querySelector('#detail-modal .modal-footer .btn-primary');
+  const delBtns = document.querySelectorAll('.row-btn.danger');
+  if (editBtn) editBtn.style.display = readOnly ? 'none' : '';
   document.getElementById('detail-modal').classList.add('open');
 };
 
@@ -231,16 +235,15 @@ window.openPrint = function() {
   window.open(url, '_blank');
 };
 
-// ===== URLハッシュから報告書を直接開く =====
+// ===== URLハッシュから報告書を直接開く（閲覧専用） =====
 window.addEventListener('hashchange', openFromHash);
 function openFromHash() {
   const id = location.hash.replace('#', '');
   if (id && allReports.length) {
     const r = allReports.find(x => x.id === id);
-    if (r) { currentReportId = id; viewReport(id); }
+    if (r) { currentReportId = id; viewReport(id, true); }
   }
 }
-// ページ読込後にハッシュがあれば開く
 const _origLoad = loadReports;
 loadReports = async function() {
   await _origLoad();

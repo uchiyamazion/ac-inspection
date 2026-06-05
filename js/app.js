@@ -3,7 +3,7 @@
 // GASへの通信はすべてGET（クエリパラメータ）で行う
 // ============================================================
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwx0iOuHapkoDO73MWriIsX-54HsSkowFqQLSux1FqAn0o4N0EG-ROxvDqj1m2--mpF/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbymy6FDAsnFY-r24BNs5AlzJNBNOskCVe8D8x1ygT4As6plCkpq1rwvWZ1xR2HYSpM1Hg/exec';
 
 let allReports = [];
 let currentReportId = null;
@@ -18,11 +18,11 @@ function setTodayDate() {
   document.getElementById('work-date').value = new Date().toISOString().split('T')[0];
 }
 
-window.showView = function(view) {
+window.showView = function(view, keepId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
-  if (view === 'form' && !currentReportId) resetForm();
+  if (view === 'form' && !keepId) resetForm();
 };
 
 // ===== GAS通信（GETのみ・jsonpで回避）=====
@@ -174,7 +174,7 @@ window.editReport = function(id) {
   map.forEach(([fid, key]) => setv(fid, r[key]));
   const pl = document.getElementById('parts-list'); pl.innerHTML = '';
   (r.parts && r.parts.length ? r.parts : [{}]).forEach(p => addPartRow(p));
-  showView('form');
+  showView('form', true);
 };
 
 // ===== Delete =====

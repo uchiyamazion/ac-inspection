@@ -257,7 +257,7 @@ body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-siz
     <div class="sign-block" style="flex:1">
       <div class="sign-label">お客様 ご署名欄（指またはタッチペンでサインをお願いします）</div>
       <div class="sign-wrap">
-        <canvas id="cust-sign" height="90"></canvas>
+        <canvas id="cust-sign" height="56"></canvas>
         <div class="sign-guide">↑ こちらにサインをお願いします</div>
       </div>
       <button class="sign-btn" onclick="pads.cust.clear()">クリア</button>
@@ -332,7 +332,7 @@ set('p-confirmer', data.confirmer);
 
 // ===== QRコード =====
 const baseUrl = location.origin + location.pathname.replace('print.html','');
-const qrUrl = baseUrl + 'index.html#' + (data.id||'');
+const qrUrl = baseUrl + 'view.html?id=' + (data.id||'');
 document.getElementById('qr-url-text').textContent = qrUrl.replace('https://','');
 if (typeof QRCode !== 'undefined' && data.id) {
   new QRCode(document.getElementById('qr-code'), {

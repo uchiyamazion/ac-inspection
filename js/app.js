@@ -3,7 +3,7 @@
 // GASへの通信はすべてGET（クエリパラメータ）で行う
 // ============================================================
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzSBysH6ytYkEuW1DIw0Jpcv-YwTKumumgOjgVQT-4Trooodpsd-mgDtFwPWwmiMn5YWw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbymy6FDAsnFY-r24BNs5AlzJNBNOskCVe8D8x1ygT4As6plCkpq1rwvWZ1xR2HYSpM1Hg/exec';
 
 let allReports = [];
 let currentReportId = null;

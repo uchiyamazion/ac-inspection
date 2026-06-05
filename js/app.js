@@ -27,7 +27,7 @@ window.showView = function(view) {
 };
 
 async function gasGet() {
-  const res = await fetch(GAS_URL, { method: 'GET' });
+  const res = await fetch(GAS_URL, { method: 'GET', redirect: 'follow' });
   const json = await res.json();
   if (json.status === 'error') throw new Error(json.data?.message || 'エラー');
   return json.data;

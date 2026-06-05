@@ -111,7 +111,6 @@ body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-siz
 
 <div class="page-wrap"><div class="report-page">
 
-  <div class="page-label">弊 社 控</div>
   <div class="report-title">空調機器　点検・作業報告書</div>
 
   <!-- 顧客 + 会社情報 -->
@@ -255,21 +254,13 @@ body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-siz
 
   <!-- サイン -->
   <div class="sign-section">
-    <div class="sign-block" style="flex:2">
+    <div class="sign-block" style="flex:1">
       <div class="sign-label">お客様 ご署名欄（指またはタッチペンでサインをお願いします）</div>
       <div class="sign-wrap">
-        <canvas id="cust-sign" height="80"></canvas>
+        <canvas id="cust-sign" height="90"></canvas>
         <div class="sign-guide">↑ こちらにサインをお願いします</div>
       </div>
       <button class="sign-btn" onclick="pads.cust.clear()">クリア</button>
-    </div>
-    <div class="sign-block" style="flex:1">
-      <div class="sign-label">担当者 確認サイン</div>
-      <div class="sign-wrap">
-        <canvas id="staff-sign" height="80"></canvas>
-        <div class="sign-guide">↑ 担当者サイン</div>
-      </div>
-      <button class="sign-btn" onclick="pads.staff.clear()">クリア</button>
     </div>
   </div>
 
@@ -388,7 +379,7 @@ function makePad(canvasId) {
   return { clear: () => { resize(); } };
 }
 
-const pads = { cust: makePad('cust-sign'), staff: makePad('staff-sign') };
+const pads = { cust: makePad('cust-sign') };
 </script>
 </body>
 </html>

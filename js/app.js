@@ -156,9 +156,10 @@ window.viewReport = function(id, readOnly) {
     partsHtml +
     '<div class="detail-section"><h4>作業確認</h4><div class="detail-grid">' + df('ステータス',r.status) + df('作業者',r.worker) + df('確認者',r.confirmer) + '</div></div>';
   // 閲覧専用モード（QRアクセス時）
-  const editBtn = document.querySelector('#detail-modal .modal-footer .btn-primary');
-  const delBtns = document.querySelectorAll('.row-btn.danger');
+  const editBtn = document.getElementById('edit-btn');
+  const printBtn = document.getElementById('print-btn');
   if (editBtn) editBtn.style.display = readOnly ? 'none' : '';
+  if (printBtn) printBtn.style.display = readOnly ? 'none' : '';
   document.getElementById('detail-modal').classList.add('open');
 };
 
@@ -236,16 +237,27 @@ window.openPrint = function() {
 };
 
 // ===== URLハッシュから報告書を直接開く（閲覧専用） =====
+// QRコードで開いた場合はハッシュにIDが入る → 閲覧専用で表示
+const isReadOnly = location.hash.length > 1;
+
+// 社内ナビ非表示（閲覧専用時）
+if (isReadOnly) {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelector('.nav')?.style.setProperty('display','none');
+    document.querySelector('.section-header .btn')?.style.setProperty('display','none');
+  });
+}
+
 window.addEventListener('hashchange', openFromHash);
 function openFromHash() {
   const id = location.hash.replace('#', '');
   if (id && allReports.length) {
     const r = allReports.find(x => x.id === id);
-    if (r) { currentReportId = id; viewReport(id, true); }
+    if (r) { currentReportId = id; viewReport(id, isReadOnly); }
   }
 }
 const _origLoad = loadReports;
 loadReports = async function() {
   await _origLoad();
-  openFromHash();
+  if (location.hash.length > 1) openFromHash();
 };

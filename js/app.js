@@ -222,3 +222,27 @@ const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 const formatDate = d => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt) ? d : dt.getFullYear() + '/' + String(dt.getMonth()+1).padStart(2,'0') + '/' + String(dt.getDate()).padStart(2,'0'); };
 const df = (label, val, mono) => val != null && val !== '' ? '<div class="detail-field"><div class="detail-label">' + esc(label) + '</div><div class="detail-value' + (mono?' mono':'') + '">' + esc(val) + '</div></div>' : '';
 const dft = (label, val) => val ? '<div class="detail-field" style="margin-bottom:12px"><div class="detail-label">' + esc(label) + '</div><div class="detail-text">' + esc(val) + '</div></div>' : '';
+
+// ===== 印刷（帳票）=====
+window.openPrint = function() {
+  const r = allReports.find(x => x.id === currentReportId);
+  if (!r) return;
+  const url = 'print.html?data=' + encodeURIComponent(JSON.stringify(r));
+  window.open(url, '_blank');
+};
+
+// ===== URLハッシュから報告書を直接開く =====
+window.addEventListener('hashchange', openFromHash);
+function openFromHash() {
+  const id = location.hash.replace('#', '');
+  if (id && allReports.length) {
+    const r = allReports.find(x => x.id === id);
+    if (r) { currentReportId = id; viewReport(id); }
+  }
+}
+// ページ読込後にハッシュがあれば開く
+const _origLoad = loadReports;
+loadReports = async function() {
+  await _origLoad();
+  openFromHash();
+};

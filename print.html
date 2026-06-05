@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>空調機器 点検・作業報告書</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'MS Gothic', 'Hiragino Kaku Gothic ProN', sans-serif;
+    font-size: 11px;
+    background: #e8e8e8;
+    color: #000;
+  }
+  .page-wrap {
+    max-width: 794px;
+    margin: 20px auto;
+    background: white;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+  }
+  .report-page {
+    width: 794px;
+    min-height: 1123px;
+    padding: 20px 24px 24px;
+    position: relative;
+    background: white;
+  }
+
+  /* 弊社控 */
+  .page-label {
+    position: absolute;
+    top: 8px; right: 10px;
+    font-size: 10px;
+    border: 1px solid #000;
+    padding: 1px 6px;
+  }
+
+  /* タイトル */
+  .report-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    border: 2px solid #4fc3f7;
+    padding: 6px 0;
+    margin-bottom: 10px;
+    color: #000;
+  }
+
+  /* 顧客情報＋会社情報 */
+  .header-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .customer-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .customer-field {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    border-bottom: 1px solid #000;
+    padding-bottom: 2px;
+  }
+  .customer-label {
+    font-size: 10px;
+    white-space: nowrap;
+    min-width: 48px;
+  }
+  .customer-value {
+    flex: 1;
+    font-size: 12px;
+    font-weight: bold;
+    min-height: 18px;
+    padding: 0 4px;
+  }
+  .sama { font-size: 11px; white-space: nowrap; }
+
+  /* 会社情報ボックス */
+  .company-box {
+    border: 2px solid #4fc3f7;
+    padding: 6px 8px;
+    min-width: 200px;
+    font-size: 9.5px;
+    line-height: 1.7;
+  }
+  .company-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: #0077cc;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .company-name .s-logo {
+    display: inline-block;
+    background: #0077cc;
+    color: white;
+    border-radius: 50%;
+    width: 16px; height: 16px;
+    text-align: center;
+    line-height: 16px;
+    font-size: 10px;
+    margin-right: 3px;
+    font-weight: bold;
+  }
+  .company-row { display: flex; gap: 4px; }
+  .company-row .label { min-width: 28px; font-weight: bold; }
+
+  /* 受付・機器情報テーブル */
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6px;
+    font-size: 10.5px;
+  }
+  .info-table td, .info-table th {
+    border: 1px solid #000;
+    padding: 3px 5px;
+    vertical-align: middle;
+  }
+  .info-table .lbl {
+    background: #e3f4fc;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    min-width: 56px;
+  }
+  .info-table .val { min-width: 80px; }
+
+  /* 作業日 */
+  .work-date-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 5px 0;
+    font-size: 11px;
+  }
+  .work-date-row .label { font-weight: bold; }
+  .work-date-row .underline {
+    border-bottom: 1px solid #000;
+    min-width: 40px;
+    display: inline-block;
+    text-align: center;
+    padding: 0 4px;
+  }
+
+  /* 発生状況・作業内容 */
+  .section-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 4px;
+    font-size: 10.5px;
+  }
+  .section-table td {
+    border: 1px solid #000;
+    padding: 3px 5px;
+    vertical-align: top;
+  }
+  .section-table .row-lbl {
+    background: #e3f4fc;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    width: 28px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    letter-spacing: 0.1em;
+    padding: 8px 4px;
+  }
+  .section-table .sub-lbl {
+    background: #e3f4fc;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    width: 40px;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    padding: 8px 4px;
+  }
+  .section-table .content-cell {
+    min-height: 48px;
+    white-space: pre-wrap;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .remarks-cell { min-height: 36px; }
+
+  /* 運転データ */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 4px;
+    font-size: 10px;
+  }
+  .data-table th {
+    border: 1px solid #000;
+    padding: 3px 2px;
+    background: #e3f4fc;
+    text-align: center;
+    font-weight: bold;
+    font-size: 9.5px;
+    white-space: nowrap;
+  }
+  .data-table td {
+    border: 1px solid #000;
+    padding: 3px 4px;
+    text-align: center;
+    font-size: 10px;
+    min-width: 60px;
+    height: 24px;
+  }
+  .data-table .row-lbl {
+    background: #e3f4fc;
+    font-size: 9px;
+    white-space: nowrap;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  /* 使用部品 */
+  .parts-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 4px;
+    font-size: 10px;
+  }
+  .parts-table th {
+    border: 1px solid #000;
+    padding: 3px 4px;
+    background: #e3f4fc;
+    text-align: center;
+    font-weight: bold;
+  }
+  .parts-table td {
+    border: 1px solid #000;
+    padding: 3px 4px;
+    height: 20px;
+  }
+  .parts-table .row-lbl {
+    background: #e3f4fc;
+    font-weight: bold;
+    text-align: center;
+    width: 24px;
+    writing-mode: vertical-rl;
+    font-size: 9px;
+  }
+
+  /* 作業確認 */
+  .confirm-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 6px;
+    font-size: 10.5px;
+  }
+  .confirm-table td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    vertical-align: middle;
+  }
+  .confirm-table .lbl {
+    background: #e3f4fc;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .checkbox-row { display: flex; gap: 12px; align-items: center; }
+  .checkbox-item { display: flex; align-items: center; gap: 3px; }
+  .cb { width: 12px; height: 12px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 12px; font-size: 10px; }
+  .cb.checked { font-weight: bold; }
+
+  /* サイン欄 */
+  .sign-section {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: stretch;
+  }
+  .sign-block {
+    flex: 1;
+    border: 1px solid #000;
+    padding: 4px;
+  }
+  .sign-block .sign-label {
+    font-size: 9.5px;
+    font-weight: bold;
+    margin-bottom: 2px;
+    text-align: center;
+    background: #e3f4fc;
+    padding: 2px;
+  }
+  .sign-canvas-wrap {
+    position: relative;
+    border: 1px solid #ccc;
+    background: #fafafa;
+    text-align: center;
+  }
+  .sign-canvas-wrap canvas {
+    display: block;
+    width: 100%;
+    cursor: crosshair;
+    touch-action: none;
+  }
+  .sign-guide {
+    position: absolute;
+    bottom: 4px;
+    left: 0; right: 0;
+    font-size: 8px;
+    color: #bbb;
+    pointer-events: none;
+  }
+  .sign-btn {
+    font-size: 9px;
+    border: none;
+    background: #f0f0f0;
+    padding: 2px 8px;
+    cursor: pointer;
+    border-radius: 2px;
+    margin-top: 2px;
+  }
+  .sign-btn:hover { background: #ddd; }
+
+  /* フッター */
+  .footer-logo {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #0077cc;
+    letter-spacing: 0.1em;
+  }
+  .footer-logo .s-logo {
+    display: inline-block;
+    background: #0077cc;
+    color: white;
+    border-radius: 50%;
+    width: 18px; height: 18px;
+    text-align: center;
+    line-height: 18px;
+    font-size: 11px;
+    margin-right: 4px;
+    font-weight: bold;
+  }
+
+  /* 印刷ボタン（印刷時は非表示） */
+  .print-controls {
+    max-width: 794px;
+    margin: 0 auto 0;
+    padding: 12px 16px;
+    background: #fff;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .print-btn {
+    padding: 8px 20px;
+    background: #0077cc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .print-btn:hover { background: #005fa3; }
+  .close-btn {
+    padding: 8px 20px;
+    background: #f0f0f0;
+    color: #333;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .print-note { font-size: 11px; color: #666; margin-left: 8px; }
+
+  @media print {
+    body { background: white; }
+    .print-controls { display: none !important; }
+    .page-wrap { box-shadow: none; margin: 0; }
+    .report-page { width: 100%; }
+    .sign-btn { display: none; }
+    @page { margin: 0; size: A4; }
+  }
+</style>
+</head>
+<body>
+
+<div class="print-controls">
+  <button class="print-btn" onclick="window.print()">🖨 印刷 / PDF保存</button>
+  <button class="close-btn" onclick="window.close()">閉じる</button>
+  <span class="print-note">※ サインを受け取ってから印刷してください</span>
+</div>
+
+<div class="page-wrap">
+<div class="report-page" id="report-page">
+
+  <div class="page-label">弊 社 控</div>
+
+  <div class="report-title">空調機器 点検・作業報告書</div>
+
+  <!-- 顧客情報 + 会社情報 -->
+  <div class="header-row">
+    <div class="customer-block">
+      <div class="customer-field">
+        <span class="customer-label">お客様名</span>
+        <span class="customer-value" id="p-customerName"></span>
+        <span class="sama">様</span>
+      </div>
+      <div class="customer-field">
+        <span class="customer-label">ご　住　所</span>
+        <span class="customer-value" id="p-address"></span>
+        <span class="sama">様</span>
+      </div>
+      <div class="customer-field">
+        <span class="customer-label">ご　依頼元</span>
+        <span class="customer-value" id="p-requester"></span>
+        <span class="sama">様</span>
+      </div>
+    </div>
+    <div class="company-box">
+      <div class="company-name"><span class="s-logo">S</span>シオンテクノス株式会社</div>
+      <div class="company-row"><span class="label">本&nbsp;&nbsp;&nbsp;社：</span><span>札幌市東区北24条東4丁目1-1<br>電話 011-751-8686㈹　FAX 011-702-0070</span></div>
+      <div class="company-row"><span class="label">函館営業所：</span><span>函館市八幡町2番14号<br>電話 0138-44-7150　FAX 0138-44-7151</span></div>
+      <div class="company-row"><span class="label">旭川営業所：</span><span>旭川市末広2条23丁目3-12<br>電話 0166-73-8272　FAX 0166-73-8273</span></div>
+    </div>
+  </div>
+
+  <!-- 受付内容・機器情報 -->
+  <table class="info-table">
+    <tr>
+      <td class="lbl">受付内容</td>
+      <td colspan="5" id="p-reception"></td>
+    </tr>
+    <tr>
+      <td class="lbl">系統名<br>設置場所</td>
+      <td colspan="3" id="p-systemName"></td>
+      <td class="lbl">品&nbsp;&nbsp;種</td>
+      <td id="p-productType"></td>
+    </tr>
+    <tr>
+      <td class="lbl">メーカー</td>
+      <td id="p-maker"></td>
+      <td class="lbl">機器型式</td>
+      <td id="p-model"></td>
+      <td class="lbl">製&nbsp;&nbsp;番</td>
+      <td id="p-serial"></td>
+    </tr>
+    <tr>
+      <td class="lbl">使用冷媒</td>
+      <td>R- <span id="p-refrigerant"></span></td>
+      <td class="lbl">出荷時充填量</td>
+      <td><span id="p-refShip"></span> kg</td>
+      <td class="lbl">追加充填量</td>
+      <td><span id="p-refAdd"></span> kg</td>
+    </tr>
+    <tr>
+      <td class="lbl">冷媒回収量</td>
+      <td><span id="p-refRecover"></span> kg</td>
+      <td class="lbl">冷媒充填量</td>
+      <td colspan="3"><span id="p-refFill"></span> kg</td>
+    </tr>
+  </table>
+
+  <!-- 作業日時 -->
+  <div class="work-date-row">
+    <span class="label">作業日</span>
+    <span id="p-workDate-y" class="underline"></span>年
+    <span id="p-workDate-m" class="underline"></span>月
+    <span id="p-workDate-d" class="underline"></span>日
+    &nbsp;&nbsp;&nbsp;
+    <span class="label">作業時間</span>
+    <span id="p-workStart" class="underline" style="min-width:50px"></span>
+    〜
+    <span id="p-workEnd" class="underline" style="min-width:50px"></span>
+  </div>
+
+  <!-- 発生状況 -->
+  <table class="section-table">
+    <tr>
+      <td class="row-lbl" rowspan="2">発生状況</td>
+      <td class="sub-lbl">症&nbsp;&nbsp;状</td>
+      <td class="content-cell" style="height:52px" id="p-symptom"></td>
+    </tr>
+    <tr>
+      <td class="sub-lbl">原&nbsp;&nbsp;因</td>
+      <td class="content-cell" style="height:52px" id="p-cause"></td>
+    </tr>
+  </table>
+
+  <!-- 作業内容 -->
+  <table class="section-table">
+    <tr>
+      <td class="row-lbl" style="padding:12px 4px">作業内容</td>
+      <td class="content-cell" style="height:80px" id="p-workContent"></td>
+    </tr>
+  </table>
+
+  <!-- 備考 -->
+  <table class="section-table">
+    <tr>
+      <td class="row-lbl">備&nbsp;&nbsp;考</td>
+      <td class="content-cell remarks-cell" id="p-remarks"></td>
+    </tr>
+  </table>
+
+  <!-- 運転データ -->
+  <table class="data-table">
+    <tr>
+      <th rowspan="2" class="row-lbl" style="width:52px">運転データ</th>
+      <th>室内吸入温</th>
+      <th>室内吹出温</th>
+      <th>吐出圧力</th>
+      <th>吸入圧力</th>
+      <th>吐出温</th>
+      <th>吸入温</th>
+      <th>外気温</th>
+      <th>運転電流</th>
+    </tr>
+    <tr>
+      <td><span id="p-tempIndoorIn"></span> <small>℃</small></td>
+      <td><span id="p-tempIndoorOut"></span> <small>℃</small></td>
+      <td><span id="p-pressDischarge"></span> <small>MPa</small></td>
+      <td><span id="p-pressSuction"></span> <small>MPa</small></td>
+      <td><span id="p-tempDischarge"></span> <small>℃</small></td>
+      <td><span id="p-tempSuction"></span> <small>℃</small></td>
+      <td><span id="p-tempOutdoor"></span> <small>℃</small></td>
+      <td><span id="p-current"></span> <small>A</small></td>
+    </tr>
+  </table>
+
+  <!-- 使用部品 -->
+  <table class="parts-table">
+    <tr>
+      <td class="row-lbl" rowspan="5">使用部品</td>
+      <th style="width:40%">部　品　名</th>
+      <th style="width:10%">数量</th>
+      <th style="width:10%">単位</th>
+      <th>部　品　コ　ー　ド</th>
+    </tr>
+    <tr><td id="p-part-name-0"></td><td id="p-part-qty-0"></td><td id="p-part-unit-0"></td><td id="p-part-code-0"></td></tr>
+    <tr><td id="p-part-name-1"></td><td id="p-part-qty-1"></td><td id="p-part-unit-1"></td><td id="p-part-code-1"></td></tr>
+    <tr><td id="p-part-name-2"></td><td id="p-part-qty-2"></td><td id="p-part-unit-2"></td><td id="p-part-code-2"></td></tr>
+    <tr><td id="p-part-name-3"></td><td id="p-part-qty-3"></td><td id="p-part-unit-3"></td><td id="p-part-code-3"></td></tr>
+  </table>
+
+  <!-- 作業確認 -->
+  <table class="confirm-table">
+    <tr>
+      <td class="lbl" style="width:80px">作業確認</td>
+      <td>
+        <div class="checkbox-row">
+          <div class="checkbox-item"><span class="cb" id="cb-完了"></span> 完了</div>
+          <div class="checkbox-item"><span class="cb" id="cb-未完了"></span> 未完了</div>
+          <div class="checkbox-item"><span class="cb" id="cb-見積書提出"></span> 見積書提出</div>
+        </div>
+      </td>
+      <td class="lbl" style="width:60px">作業者</td>
+      <td id="p-worker" style="min-width:80px"></td>
+      <td class="lbl" style="width:60px">確認者</td>
+      <td id="p-confirmer" style="min-width:80px"></td>
+      <td class="lbl" style="width:24px; text-align:center">印</td>
+      <td style="width:60px"></td>
+    </tr>
+  </table>
+
+  <!-- お客様サイン -->
+  <div class="sign-section">
+    <div class="sign-block" style="flex:2">
+      <div class="sign-label">お客様 ご署名欄（タッチしてサインしてください）</div>
+      <div class="sign-canvas-wrap">
+        <canvas id="sign-canvas" height="90"></canvas>
+        <div class="sign-guide">↑ こちらにサインをお願いします</div>
+      </div>
+      <div style="text-align:right; margin-top:2px">
+        <button class="sign-btn" onclick="clearSign()">クリア</button>
+      </div>
+    </div>
+    <div class="sign-block" style="flex:1">
+      <div class="sign-label">担当者 確認サイン</div>
+      <div class="sign-canvas-wrap">
+        <canvas id="staff-sign-canvas" height="90"></canvas>
+        <div class="sign-guide">↑ 担当者サイン</div>
+      </div>
+      <div style="text-align:right; margin-top:2px">
+        <button class="sign-btn" onclick="clearStaffSign()">クリア</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- フッター + QRコード -->
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+    <div class="footer-logo"><span class="s-logo">S</span>シオンテクノス株式会社</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div style="text-align:center; font-size:8px; color:#555; line-height:1.6;">
+        報告書をスマホで確認<br>
+        <span style="font-size:7px; color:#aaa;" id="qr-url-label"></span>
+      </div>
+      <div id="qr-code"></div>
+    </div>
+  </div>
+
+</div><!-- .report-page -->
+</div><!-- .page-wrap -->
+
+<script>
+// ===== データ読込 =====
+const params = new URLSearchParams(location.search);
+const data = JSON.parse(decodeURIComponent(params.get('data') || '{}'));
+
+function set(id, val) {
+  const el = document.getElementById(id);
+  if (el && val != null && val !== '') el.textContent = val;
+}
+
+// 基本情報
+set('p-customerName', data.customerName);
+set('p-address', data.address);
+set('p-requester', data.requester);
+set('p-reception', data.reception);
+set('p-systemName', data.systemName);
+set('p-productType', data.productType);
+set('p-maker', data.maker);
+set('p-model', data.model);
+set('p-serial', data.serial);
+set('p-refrigerant', data.refrigerant);
+set('p-refShip', data.refShip);
+set('p-refAdd', data.refAdd);
+set('p-refRecover', data.refRecover);
+set('p-refFill', data.refFill);
+
+// 作業日
+if (data.workDate) {
+  const d = new Date(data.workDate);
+  set('p-workDate-y', d.getFullYear());
+  set('p-workDate-m', d.getMonth()+1);
+  set('p-workDate-d', d.getDate());
+}
+set('p-workStart', data.workStart);
+set('p-workEnd', data.workEnd);
+
+// 作業情報
+set('p-symptom', data.symptom);
+set('p-cause', data.cause);
+set('p-workContent', data.workContent);
+set('p-remarks', data.remarks);
+
+// 運転データ
+set('p-tempIndoorIn', data.tempIndoorIn);
+set('p-tempIndoorOut', data.tempIndoorOut);
+set('p-pressDischarge', data.pressDischarge);
+set('p-pressSuction', data.pressSuction);
+set('p-tempDischarge', data.tempDischarge);
+set('p-tempSuction', data.tempSuction);
+set('p-tempOutdoor', data.tempOutdoor);
+set('p-current', data.current);
+
+// 部品
+const parts = data.parts || [];
+for (let i = 0; i < 4; i++) {
+  const p = parts[i] || {};
+  set('p-part-name-'+i, p.name);
+  set('p-part-qty-'+i, p.qty);
+  set('p-part-unit-'+i, p.unit);
+  set('p-part-code-'+i, p.code);
+}
+
+// ステータスチェックボックス
+const status = data.status || '';
+const cbEl = document.getElementById('cb-' + status);
+if (cbEl) cbEl.textContent = '✓';
+
+// 作業者・確認者
+set('p-worker', data.worker);
+set('p-confirmer', data.confirmer);
+
+// ===== サインパッド =====
+function makeSignPad(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+
+  function resize() {
+    const w = canvas.offsetWidth;
+    canvas.width = w * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  }
+
+  canvas.addEventListener('mousedown', e => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+  canvas.addEventListener('mousemove', e => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+  canvas.addEventListener('mouseup', () => drawing = false);
+  canvas.addEventListener('mouseleave', () => drawing = false);
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+  canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+  canvas.addEventListener('touchend', () => drawing = false);
+
+  window.addEventListener('resize', resize);
+  resize();
+  return { clear: () => { ctx.clearRect(0, 0, canvas.width, canvas.height); } };
+}
+
+const customerPad = makeSignPad('sign-canvas');
+const staffPad = makeSignPad('staff-sign-canvas');
+
+window.clearSign = () => customerPad.clear();
+window.clearStaffSign = () => staffPad.clear();
+
+// ===== QRコード生成 =====
+(function() {
+  // 報告書詳細ページのURL（report_idをクエリで渡す簡易版）
+  // GitHub PagesのURLベース + report id
+  const baseUrl = location.origin + location.pathname.replace('print.html', '');
+  const reportId = data.id || '';
+  // 一覧ページを開いてそのIDの報告書が見える形のURL
+  const qrUrl = baseUrl + 'index.html#' + reportId;
+
+  document.getElementById('qr-url-label').textContent = qrUrl.replace('https://', '');
+
+  if (typeof QRCode !== 'undefined' && reportId) {
+    new QRCode(document.getElementById('qr-code'), {
+      text: qrUrl,
+      width: 72,
+      height: 72,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+})();
+</script>
+</body>
+</html>

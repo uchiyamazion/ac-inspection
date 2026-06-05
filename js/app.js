@@ -34,7 +34,7 @@ async function gasGet() {
 }
 
 async function gasPost(body) {
-  const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(body) });
+  const res = await fetch(GAS_URL, { method: 'POST', redirect: 'follow', body: JSON.stringify(body) });
   const json = await res.json();
   if (json.status === 'error') throw new Error(json.data?.message || 'エラー');
   return json.data;

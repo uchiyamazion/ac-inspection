@@ -314,14 +314,14 @@ body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-siz
   <!-- お客様サイン -->
   <table style="width:100%;border-collapse:collapse;margin-bottom:4px;">
     <tr>
-      <td style="border:1px solid #000;background:#e1f5fe;font-weight:bold;text-align:center;width:64px;font-size:10px;padding:2px 4px;">お客様<br>ご署名欄</td>
-      <td style="border:1px solid #000;padding:3px 6px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div id="sign-preview" onclick="openSignModal()" style="flex:1;height:52px;border:1px dashed #ccc;background:#fafafa;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;overflow:hidden;">
-            <img id="sign-img" src="" style="display:none;max-height:50px;max-width:100%;">
-            <span id="sign-ph" style="font-size:10px;color:#bbb;">タップしてサイン ✏</span>
+      <td style="border:1px solid #000;background:#e1f5fe;font-weight:bold;text-align:center;width:56px;font-size:9px;padding:2px 3px;vertical-align:middle;">お客様<br>ご署名欄</td>
+      <td style="border:1px solid #000;padding:2px 4px;vertical-align:middle;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div id="sign-preview" onclick="openSignModal()" style="flex:1;height:36px;border:1px dashed #ccc;background:#fafafa;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;overflow:hidden;">
+            <img id="sign-img" src="" style="display:none;max-height:34px;max-width:100%;">
+            <span id="sign-ph" style="font-size:9px;color:#bbb;">タップしてサイン ✏</span>
           </div>
-          <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
+          <div style="display:flex;gap:3px;flex-shrink:0;">
             <button class="sign-btn" onclick="openSignModal()">✏ サイン</button>
             <button class="sign-btn" onclick="clearSign()">クリア</button>
           </div>
@@ -487,31 +487,37 @@ window.clearSign = function() {
   modalCtx.clearRect(0, 0, modalCanvas.width, modalCanvas.height);
 };
 
-// ===== GASへ保存（POST方式・サイン画像対応）=====
-window.saveToGas = async function() {
-  if (!data.id) { alert('報告書IDがありません'); return; }
+// ===== サイン保存（ローカルストレージ）=====
+// サイン画像はデバイスに保存。印刷時はそのまま印刷されます。
+window.saveToGas = function() {
   const img = document.getElementById('sign-img');
   const signData = (img.src && img.style.display !== 'none') ? img.src : '';
-  const saveData = { ...data, customerSign: signData };
-
-  // サインがなくても確認
-  if (!signData && !confirm('サインなしで保存しますか？')) return;
-
+  if (!signData) {
+    alert('サインがありません。先にサインしてください。');
+    return;
+  }
   try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'update', id: data.id, data: saveData })
-    });
-    const json = await res.json();
-    if (json.status === 'ok') {
-      alert('✓ 保存しました');
-    } else {
-      alert('保存失敗: ' + (json.data?.message || '不明'));
-    }
+    localStorage.setItem('sign_' + data.id, signData);
+    alert('✓ サインを保存しました\nこのまま印刷・PDF保存してください。');
   } catch(e) {
-    alert('保存失敗: ' + e.message);
+    // ローカルストレージが使えない場合はそのまま印刷を促す
+    alert('✓ サインが入力されています。\nこのまま印刷・PDF保存してください。');
   }
 };
+
+// ページ読込時に保存済みサインを復元
+(function restoreSign() {
+  if (!data.id) return;
+  try {
+    const saved = localStorage.getItem('sign_' + data.id);
+    if (saved) {
+      const img = document.getElementById('sign-img');
+      img.src = saved;
+      img.style.display = 'block';
+      document.getElementById('sign-ph').style.display = 'none';
+    }
+  } catch(e) {}
+})();
 </script>
 </body>
 </html>

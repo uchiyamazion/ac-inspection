@@ -12,6 +12,7 @@ body { font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; backg
   background: #0066cc; color: white;
   padding: 16px 20px;
   display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 10;
 }
 .header .logo { font-size: 22px; }
 .header .title { font-size: 15px; font-weight: 700; }
@@ -42,6 +43,11 @@ body { font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; backg
 .parts-table td { padding: 6px 8px; border-bottom: 1px solid #f0f4f8; }
 
 .footer { text-align: center; padding: 24px 16px; color: #8fa5b8; font-size: 12px; }
+@media print {
+  .header button { display: none !important; }
+  body { background: white; }
+  @page { margin: 10mm; }
+}
 .footer .company { font-size: 15px; font-weight: 700; color: #0066cc; margin-bottom: 4px; }
 
 .not-found { text-align: center; padding: 60px 20px; color: #8fa5b8; }
@@ -52,10 +58,11 @@ body { font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; backg
 
 <div class="header">
   <div class="logo">❄</div>
-  <div>
+  <div style="flex:1">
     <div class="title">シオンテクノス株式会社</div>
     <div class="sub">点検・作業報告書</div>
   </div>
+  <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:white;padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;">🖨 PDF保存</button>
 </div>
 
 <div class="container" id="content">

@@ -1,8 +1,3 @@
-// ============================================================
-// 空調機器 点検・作業報告システム — フロントエンド
-// GASへの通信はすべてGET（クエリパラメータ）で行う
-// ============================================================
-
 // GAS_URLはjs/config.jsで設定
 
 let allReports = [];
@@ -25,31 +20,21 @@ window.showView = function(view, keepId) {
   if (view === 'form' && !keepId) resetForm();
 };
 
-// ===== GAS通信（GETのみ・jsonpで回避）=====
-function gasRequest(params) {
-  return new Promise((resolve, reject) => {
-    const cbName = 'gasCallback_' + Date.now();
-    const url = GAS_URL + '?' + new URLSearchParams({ ...params, callback: cbName }).toString();
-
-    window[cbName] = function(json) {
-      delete window[cbName];
-      document.head.removeChild(script);
-      if (json.status === 'error') reject(new Error(json.data?.message || 'エラー'));
-      else resolve(json.data);
-    };
-
-    const script = document.createElement('script');
-    script.src = url;
-    script.onerror = () => { delete window[cbName]; reject(new Error('通信エラー')); };
-    document.head.appendChild(script);
-  });
+// ===== GAS通信（fetchベース・GASのリダイレクト対応）=====
+async function gasCall(params) {
+  const url = GAS_URL + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url, { redirect: 'follow' });
+  const json = await res.json();
+  if (json.status === 'error') throw new Error(json.data?.message || 'エラー');
+  return json.data;
 }
 
 // ===== Load =====
 async function loadReports() {
   try {
-    allReports = await gasRequest({ action: 'list' });
+    allReports = await gasCall({ action: 'list' });
     renderTable(allReports);
+    if (location.hash.length > 1) openFromHash();
   } catch (e) {
     renderTable([]);
     showToast('読込失敗: ' + e.message, 'error');
@@ -63,7 +48,8 @@ function renderTable(reports) {
     tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">📋</span><p>報告書がありません。「新規報告書」から作成してください。</p></div></td></tr>';
     return;
   }
-  tbody.innerHTML = reports.map(r => '<tr>' +
+  tbody.innerHTML = reports.map(r =>
+    '<tr>' +
     '<td style="white-space:nowrap;font-family:var(--mono);font-size:12px">' + formatDate(r.workDate) + '</td>' +
     '<td><strong>' + esc(r.systemName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.customerName||'') + '</span></td>' +
     '<td>' + esc(r.maker||'—') + '</td>' +
@@ -103,12 +89,9 @@ window.saveReport = async function(e) {
   btn.disabled = true; btn.textContent = '保存中…';
   const data = collectFormData();
   try {
-    const params = {
-      action: currentReportId ? 'update' : 'create',
-      data: JSON.stringify(data)
-    };
+    const params = { action: currentReportId ? 'update' : 'create', data: encodeURIComponent(JSON.stringify(data)) };
     if (currentReportId) params.id = currentReportId;
-    await gasRequest(params);
+    await gasCall(params);
     showToast(currentReportId ? '更新しました' : '保存しました', 'success');
     currentReportId = null;
     await loadReports();
@@ -141,21 +124,24 @@ function collectFormData() {
   };
 }
 
-// ===== Detail =====
+// ===== Detail Modal =====
 window.viewReport = function(id, readOnly) {
   const r = allReports.find(x => x.id === id);
   if (!r) return;
   currentReportId = id;
   document.getElementById('modal-title').textContent = formatDate(r.workDate) + ' — ' + (r.systemName || '');
-  const partsHtml = r.parts && r.parts.length ? '<div class="detail-section"><h4>使用部品</h4><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--primary-light)"><th style="padding:8px;text-align:left">部品名</th><th style="padding:8px">数量</th><th style="padding:8px">単位</th><th style="padding:8px;text-align:left">コード</th></tr></thead><tbody>' + r.parts.map(p => '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:8px">' + esc(p.name) + '</td><td style="padding:8px;text-align:center">' + esc(p.qty) + '</td><td style="padding:8px;text-align:center">' + esc(p.unit) + '</td><td style="padding:8px;font-family:var(--mono);font-size:12px">' + esc(p.code) + '</td></tr>').join('') + '</tbody></table></div>' : '';
+  const partsHtml = r.parts && r.parts.length
+    ? '<div class="detail-section"><h4>使用部品</h4><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--primary-light)"><th style="padding:8px;text-align:left">部品名</th><th style="padding:8px">数量</th><th style="padding:8px">単位</th><th style="padding:8px;text-align:left">コード</th></tr></thead><tbody>'
+      + r.parts.map(p => '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:8px">' + esc(p.name) + '</td><td style="padding:8px;text-align:center">' + esc(p.qty) + '</td><td style="padding:8px;text-align:center">' + esc(p.unit) + '</td><td style="padding:8px;font-family:var(--mono);font-size:12px">' + esc(p.code) + '</td></tr>').join('')
+      + '</tbody></table></div>' : '';
   document.getElementById('modal-body').innerHTML =
     '<div class="detail-section"><h4>基本情報</h4><div class="detail-grid">' + df('お客様名',r.customerName) + df('ご住所',r.address) + df('ご依頼元',r.requester) + df('受付内容',r.reception) + '</div></div>' +
-    '<div class="detail-section"><h4>機器情報</h4><div class="detail-grid">' + df('系統名',r.systemName) + df('品種',r.productType) + df('メーカー',r.maker) + df('型式',r.model,true) + df('製番',r.serial,true) + df('使用冷媒',r.refrigerant) + df('出荷時充填量',r.refShip!=null?r.refShip+' kg':'') + df('追加充填量',r.refAdd!=null?r.refAdd+' kg':'') + df('冷媒回収量',r.refRecover!=null?r.refRecover+' kg':'') + df('冷媒充填量',r.refFill!=null?r.refFill+' kg':'') + '</div></div>' +
+    '<div class="detail-section"><h4>機器情報</h4><div class="detail-grid">' + df('系統名',r.systemName) + df('品種',r.productType) + df('メーカー',r.maker) + df('型式',r.model,true) + df('製番',r.serial,true) + df('使用冷媒',r.refrigerant) + df('出荷時充填量',r.refShip!=null&&r.refShip!==''?r.refShip+' kg':'') + df('追加充填量',r.refAdd!=null&&r.refAdd!==''?r.refAdd+' kg':'') + df('冷媒回収量',r.refRecover!=null&&r.refRecover!==''?r.refRecover+' kg':'') + df('冷媒充填量',r.refFill!=null&&r.refFill!==''?r.refFill+' kg':'') + '</div></div>' +
     '<div class="detail-section"><h4>作業情報</h4><div class="detail-grid">' + df('作業日',formatDate(r.workDate)) + df('作業時間',r.workStart&&r.workEnd?r.workStart+'～'+r.workEnd:'') + '</div>' + dft('症状',r.symptom) + dft('原因',r.cause) + dft('作業内容',r.workContent) + dft('備考',r.remarks) + '</div>' +
-    '<div class="detail-section"><h4>運転データ</h4><div class="detail-grid">' + df('室内吸入温',r.tempIndoorIn!=null?r.tempIndoorIn+' ℃':'',true) + df('室内吹出温',r.tempIndoorOut!=null?r.tempIndoorOut+' ℃':'',true) + df('吐出圧力',r.pressDischarge!=null?r.pressDischarge+' MPa':'',true) + df('吸入圧力',r.pressSuction!=null?r.pressSuction+' MPa':'',true) + df('吐出温',r.tempDischarge!=null?r.tempDischarge+' ℃':'',true) + df('吸入温',r.tempSuction!=null?r.tempSuction+' ℃':'',true) + df('外気温',r.tempOutdoor!=null?r.tempOutdoor+' ℃':'',true) + df('運転電流',r.current!=null?r.current+' A':'',true) + '</div></div>' +
+    '<div class="detail-section"><h4>運転データ</h4><div class="detail-grid">' + df('室内吸入温',r.tempIndoorIn!=null&&r.tempIndoorIn!==''?r.tempIndoorIn+' ℃':'',true) + df('室内吹出温',r.tempIndoorOut!=null&&r.tempIndoorOut!==''?r.tempIndoorOut+' ℃':'',true) + df('吐出圧力',r.pressDischarge!=null&&r.pressDischarge!==''?r.pressDischarge+' MPa':'',true) + df('吸入圧力',r.pressSuction!=null&&r.pressSuction!==''?r.pressSuction+' MPa':'',true) + df('吐出温',r.tempDischarge!=null&&r.tempDischarge!==''?r.tempDischarge+' ℃':'',true) + df('吸入温',r.tempSuction!=null&&r.tempSuction!==''?r.tempSuction+' ℃':'',true) + df('外気温',r.tempOutdoor!=null&&r.tempOutdoor!==''?r.tempOutdoor+' ℃':'',true) + df('運転電流',r.current!=null&&r.current!==''?r.current+' A':'',true) + '</div></div>' +
     partsHtml +
     '<div class="detail-section"><h4>作業確認</h4><div class="detail-grid">' + df('ステータス',r.status) + df('作業者',r.worker) + df('確認者',r.confirmer) + '</div></div>';
-  // 閲覧専用モード（QRアクセス時）
+
   const editBtn = document.getElementById('edit-btn');
   const printBtn = document.getElementById('print-btn');
   if (editBtn) editBtn.style.display = readOnly ? 'none' : '';
@@ -186,7 +172,7 @@ window.editReport = function(id) {
 window.deleteReport = async function(id) {
   if (!confirm('この報告書を削除しますか？')) return;
   try {
-    await gasRequest({ action: 'delete', id });
+    await gasCall({ action: 'delete', id });
     showToast('削除しました', 'success');
     await loadReports();
   } catch (err) { showToast('削除失敗: ' + err.message, 'error'); }
@@ -205,13 +191,30 @@ window.addPartRow = function(data) {
   data = data || {};
   const div = document.createElement('div');
   div.className = 'part-row';
-  div.innerHTML = '<input type="text" class="form-input" placeholder="部品名" value="' + esc(data.name||'') + '">' +
+  div.innerHTML =
+    '<input type="text" class="form-input" placeholder="部品名" value="' + esc(data.name||'') + '">' +
     '<input type="number" class="form-input" placeholder="数量" value="' + (data.qty||'') + '" min="0">' +
     '<input type="text" class="form-input" placeholder="単位" value="' + esc(data.unit||'') + '">' +
     '<input type="text" class="form-input" placeholder="部品コード" value="' + esc(data.code||'') + '">' +
     '<button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>';
   document.getElementById('parts-list').appendChild(div);
 };
+
+// ===== 印刷（帳票）=====
+window.openPrint = function() {
+  const r = allReports.find(x => x.id === currentReportId);
+  if (!r) return;
+  const url = 'print.html?data=' + encodeURIComponent(JSON.stringify(r));
+  window.open(url, '_blank');
+};
+
+// ===== ハッシュから閲覧専用で開く =====
+function openFromHash() {
+  const id = location.hash.replace('#', '');
+  if (!id) return;
+  const r = allReports.find(x => x.id === id);
+  if (r) { currentReportId = id; viewReport(id, true); }
+}
 
 function showToast(msg, type) {
   const t = document.getElementById('toast');
@@ -227,37 +230,3 @@ const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 const formatDate = d => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt) ? d : dt.getFullYear() + '/' + String(dt.getMonth()+1).padStart(2,'0') + '/' + String(dt.getDate()).padStart(2,'0'); };
 const df = (label, val, mono) => val != null && val !== '' ? '<div class="detail-field"><div class="detail-label">' + esc(label) + '</div><div class="detail-value' + (mono?' mono':'') + '">' + esc(val) + '</div></div>' : '';
 const dft = (label, val) => val ? '<div class="detail-field" style="margin-bottom:12px"><div class="detail-label">' + esc(label) + '</div><div class="detail-text">' + esc(val) + '</div></div>' : '';
-
-// ===== 印刷（帳票）=====
-window.openPrint = function() {
-  const r = allReports.find(x => x.id === currentReportId);
-  if (!r) return;
-  const url = 'print.html?data=' + encodeURIComponent(JSON.stringify(r));
-  window.open(url, '_blank');
-};
-
-// ===== URLハッシュから報告書を直接開く（閲覧専用） =====
-// QRコードで開いた場合はハッシュにIDが入る → 閲覧専用で表示
-const isReadOnly = location.hash.length > 1;
-
-// 社内ナビ非表示（閲覧専用時）
-if (isReadOnly) {
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelector('.nav')?.style.setProperty('display','none');
-    document.querySelector('.section-header .btn')?.style.setProperty('display','none');
-  });
-}
-
-window.addEventListener('hashchange', openFromHash);
-function openFromHash() {
-  const id = location.hash.replace('#', '');
-  if (id && allReports.length) {
-    const r = allReports.find(x => x.id === id);
-    if (r) { currentReportId = id; viewReport(id, isReadOnly); }
-  }
-}
-const _origLoad = loadReports;
-loadReports = async function() {
-  await _origLoad();
-  if (location.hash.length > 1) openFromHash();
-};

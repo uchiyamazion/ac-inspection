@@ -7,226 +7,246 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-size: 11px; background: #ccc; color: #000; }
+body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-size: 11px; background: #b0bec5; color: #000; }
 
 /* 操作バー */
 .ctrl-bar {
-  background: #fff; padding: 10px 16px;
+  background: #1565c0; padding: 10px 16px;
   display: flex; gap: 8px; align-items: center;
-  border-bottom: 2px solid #0077cc;
   position: sticky; top: 0; z-index: 50;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-.ctrl-btn { padding: 8px 16px; border: none; border-radius: 5px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
-.ctrl-btn-primary { background: #0077cc; color: white; }
-.ctrl-btn-secondary { background: #00a896; color: white; }
-.ctrl-btn-ghost { background: #f0f0f0; color: #333; }
-.ctrl-note { font-size: 11px; color: #888; margin-left: 4px; }
+.ctrl-btn { padding: 8px 18px; border: none; border-radius: 5px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
+.ctrl-btn:hover { opacity: 0.85; }
+.ctrl-btn-print { background: white; color: #1565c0; }
+.ctrl-btn-save { background: #43a047; color: white; }
+.ctrl-btn-close { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); }
+.ctrl-note { font-size: 11px; color: rgba(255,255,255,0.7); margin-left: 4px; }
 
 /* A4用紙 */
-.page-wrap { max-width: 794px; margin: 16px auto 40px; background: white; box-shadow: 0 2px 16px rgba(0,0,0,0.2); }
-.report-page { padding: 16px 20px 18px; position: relative; }
+.page-wrap { max-width: 794px; margin: 16px auto 40px; background: white; box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+.report-page { padding: 14px 18px 16px; }
 
-/* タイトル */
-.report-title {
-  text-align: center; font-size: 16px; font-weight: bold;
-  letter-spacing: 0.2em; border: 2px solid #29b6f6;
-  padding: 5px 0; margin-bottom: 8px; color: #000;
+/* ヘッダー部：ロゴ＋タイトル＋会社情報 */
+.page-header { display: flex; align-items: stretch; gap: 0; margin-bottom: 7px; border: 2px solid #1565c0; }
+
+.logo-block {
+  background: #1565c0; color: white;
+  padding: 6px 10px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; min-width: 52px;
+}
+.logo-s {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: white; color: #1565c0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 900; font-family: serif;
+  margin-bottom: 2px;
+}
+.logo-text { font-size: 7px; letter-spacing: 0.05em; opacity: 0.9; text-align: center; }
+
+.title-block {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  border-left: 2px solid #1565c0; border-right: 2px solid #1565c0;
+  padding: 4px;
+}
+.title-block h1 {
+  font-size: 16px; font-weight: bold; letter-spacing: 0.25em; color: #1565c0;
 }
 
-/* 顧客+会社 */
-.top-row { display: flex; gap: 8px; margin-bottom: 6px; }
-.customer-block { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-.cfield { display: flex; align-items: flex-end; border-bottom: 1px solid #000; padding-bottom: 1px; gap: 4px; }
-.clabel { font-size: 10px; min-width: 54px; white-space: nowrap; }
-.cvalue { flex: 1; font-size: 12px; font-weight: bold; min-height: 15px; padding: 0 4px; }
-.csama { font-size: 10px; white-space: nowrap; }
+.company-block { padding: 5px 8px; font-size: 8px; line-height: 1.65; min-width: 190px; }
+.company-name { font-size: 11px; font-weight: bold; color: #1565c0; margin-bottom: 3px; display: flex; align-items: center; gap: 3px; }
+.company-name .cs { width: 13px; height: 13px; border-radius: 50%; background: #1565c0; color: white; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; font-family: serif; }
+.crow { display: flex; gap: 2px; }
+.crow .cl { min-width: 52px; font-weight: bold; }
 
-.company-box {
-  border: 2px solid #29b6f6; padding: 5px 7px;
-  min-width: 188px; font-size: 8.5px; line-height: 1.6;
-}
-.company-name { font-size: 12px; font-weight: bold; color: #0077cc; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
-.slogo { display: inline-flex; align-items: center; justify-content: center; background: #0077cc; color: white; border-radius: 50%; width: 14px; height: 14px; font-size: 8px; font-weight: bold; flex-shrink: 0; }
-.crow { display: flex; gap: 2px; margin-bottom: 1px; }
-.crow .cl { min-width: 54px; font-weight: bold; }
+/* 顧客情報 */
+.customer-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+.customer-table td { padding: 2px 4px; font-size: 10px; }
+.customer-table .cl { width: 60px; color: #1565c0; font-weight: bold; }
+.customer-table .cv { border-bottom: 1px solid #000; font-size: 12px; font-weight: bold; padding-bottom: 1px; }
+.customer-table .cs { width: 16px; color: #555; }
 
 /* 情報テーブル */
-.info-tbl { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-.info-tbl td { border: 1px solid #000; padding: 2px 4px; vertical-align: middle; font-size: 10px; }
-.info-tbl .lbl { background: #e1f5fe; font-weight: bold; text-align: center; white-space: nowrap; width: 1%; }
-.info-tbl .val { }
+.info-tbl { width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 10px; }
+.info-tbl td { border: 1px solid #78909c; padding: 2px 4px; vertical-align: middle; }
+.info-tbl .lbl { background: #e3f2fd; color: #1565c0; font-weight: bold; text-align: center; white-space: nowrap; }
 
 /* 作業日 */
-.date-row { display: flex; align-items: center; gap: 8px; font-size: 10.5px; margin: 3px 0 3px; }
-.date-row .dl { font-weight: bold; }
-.ul { border-bottom: 1px solid #000; min-width: 32px; display: inline-block; text-align: center; padding: 0 2px; }
+.date-row { display: flex; align-items: center; gap: 6px; font-size: 10.5px; margin: 3px 0; }
+.date-row .dl { color: #1565c0; font-weight: bold; }
+.ul { border-bottom: 1.5px solid #000; min-width: 30px; display: inline-block; text-align: center; padding: 0 2px; }
 
-/* セクションテーブル */
-.sec-tbl { width: 100%; border-collapse: collapse; margin-bottom: 3px; }
-.sec-tbl td { border: 1px solid #000; padding: 2px 4px; vertical-align: top; font-size: 10px; }
+/* セクション */
+.sec-tbl { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 10px; }
+.sec-tbl td { border: 1px solid #78909c; padding: 2px 4px; vertical-align: top; }
 .sec-tbl .vtit {
-  background: #e1f5fe; font-weight: bold; text-align: center;
-  writing-mode: vertical-rl; white-space: nowrap;
-  padding: 6px 3px; width: 18px;
+  background: #e3f2fd; color: #1565c0; font-weight: bold;
+  text-align: center; writing-mode: vertical-rl;
+  white-space: nowrap; padding: 5px 3px; width: 18px;
 }
 .sec-tbl .vsub {
-  background: #e1f5fe; font-weight: bold; text-align: center;
-  writing-mode: vertical-rl; white-space: nowrap;
-  padding: 4px 3px; width: 32px;
+  background: #e8f5e9; font-weight: bold;
+  text-align: center; writing-mode: vertical-rl;
+  white-space: nowrap; padding: 4px 3px; width: 28px;
 }
-.sec-tbl .cell { white-space: pre-wrap; line-height: 1.5; min-height: 40px; }
-.sec-tbl .cell-lg { min-height: 64px; }
-.sec-tbl .cell-sm { min-height: 28px; }
+.sec-tbl .cell { white-space: pre-wrap; line-height: 1.5; min-height: 36px; }
+.sec-tbl .cell-lg { min-height: 60px; }
+.sec-tbl .cell-sm { min-height: 24px; }
 
 /* 運転データ */
 .data-tbl { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 9px; }
-.data-tbl th { border: 1px solid #000; padding: 2px 3px; background: #e1f5fe; text-align: center; font-weight: bold; white-space: nowrap; }
-.data-tbl td { border: 1px solid #000; padding: 2px 3px; text-align: center; height: 20px; }
-.data-tbl .vtit { background: #e1f5fe; font-weight: bold; writing-mode: vertical-rl; padding: 4px 2px; width: 44px; font-size: 9px; text-align: center; }
+.data-tbl th { border: 1px solid #78909c; padding: 2px 2px; background: #e3f2fd; color: #1565c0; text-align: center; font-weight: bold; white-space: nowrap; }
+.data-tbl td { border: 1px solid #78909c; padding: 2px 2px; text-align: center; height: 20px; }
+.data-tbl .vtit { background: #e3f2fd; color: #1565c0; font-weight: bold; writing-mode: vertical-rl; padding: 3px 2px; width: 40px; font-size: 8.5px; }
 
 /* 部品 */
 .parts-tbl { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 10px; }
-.parts-tbl th { border: 1px solid #000; padding: 2px 4px; background: #e1f5fe; text-align: center; font-weight: bold; }
-.parts-tbl td { border: 1px solid #000; padding: 2px 4px; height: 17px; }
-.parts-tbl .vtit { background: #e1f5fe; font-weight: bold; text-align: center; writing-mode: vertical-rl; width: 18px; font-size: 9px; }
+.parts-tbl th { border: 1px solid #78909c; padding: 2px 4px; background: #e3f2fd; color: #1565c0; text-align: center; font-weight: bold; }
+.parts-tbl td { border: 1px solid #78909c; padding: 2px 4px; height: 16px; }
+.parts-tbl .vtit { background: #e3f2fd; color: #1565c0; font-weight: bold; text-align: center; writing-mode: vertical-rl; width: 18px; font-size: 9px; }
 
-/* 確認 */
-.conf-tbl { width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 10px; }
-.conf-tbl td { border: 1px solid #000; padding: 3px 5px; vertical-align: middle; }
-.conf-tbl .lbl { background: #e1f5fe; font-weight: bold; text-align: center; white-space: nowrap; }
-.cbrow { display: flex; gap: 12px; align-items: center; }
+/* 確認・サイン */
+.bottom-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 10px; }
+.bottom-table td { border: 1px solid #78909c; padding: 2px 5px; vertical-align: middle; }
+.bottom-table .lbl { background: #e3f2fd; color: #1565c0; font-weight: bold; text-align: center; white-space: nowrap; }
+.cbrow { display: flex; gap: 10px; align-items: center; }
 .cbitem { display: flex; align-items: center; gap: 2px; }
 .cb { width: 10px; height: 10px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 10px; font-size: 9px; }
 
 /* サイン欄 */
-.sign-row { display: flex; gap: 6px; margin-bottom: 4px; align-items: stretch; }
-.sign-block { border: 1px solid #000; padding: 3px 4px; flex: 1; }
-.sign-lbl { font-size: 9px; font-weight: bold; text-align: center; background: #e1f5fe; padding: 1px; margin-bottom: 2px; }
-.sign-preview {
-  height: 44px; border: 1px solid #ccc; background: #fafafa;
+.sign-area {
+  height: 38px; border: 1px dashed #90a4ae; background: #fafafa;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; border-radius: 2px; overflow: hidden;
+  transition: background 0.15s;
 }
-.sign-preview img { max-height: 42px; max-width: 100%; display: none; }
-.sign-placeholder { font-size: 9px; color: #bbb; }
-.sign-btns { display: flex; gap: 3px; margin-top: 2px; justify-content: flex-end; }
-.sign-btn { font-size: 9px; border: 1px solid #ccc; background: #f5f5f5; padding: 1px 7px; cursor: pointer; border-radius: 2px; }
+.sign-area:hover { background: #f0f4f8; }
+.sign-area img { max-height: 36px; max-width: 100%; display: none; }
+.sign-area .sign-ph { font-size: 9px; color: #bbb; }
+.sign-sub { display: flex; gap: 3px; margin-top: 2px; justify-content: flex-end; }
+.sign-btn { font-size: 9px; border: 1px solid #90a4ae; background: #f5f5f5; padding: 1px 7px; cursor: pointer; border-radius: 2px; }
+.sign-btn:hover { background: #e0e0e0; }
 
 /* フッター */
-.footer-row { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; }
-.footer-logo { font-size: 12px; font-weight: bold; color: #0077cc; display: flex; align-items: center; gap: 4px; }
+.footer-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 4px; border-top: 1.5px solid #1565c0; }
+.footer-logo { display: flex; align-items: center; gap: 5px; color: #1565c0; font-size: 11px; font-weight: bold; }
+.footer-logo .fs { width: 16px; height: 16px; border-radius: 50%; background: #1565c0; color: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; font-family: serif; }
 .qr-wrap { display: flex; align-items: center; gap: 5px; }
-.qr-lbl { font-size: 8px; color: #666; text-align: right; line-height: 1.5; }
-#qr-code img, #qr-code canvas { width: 60px !important; height: 60px !important; }
+.qr-lbl { font-size: 8px; color: #78909c; text-align: right; line-height: 1.5; }
+#qr-code img, #qr-code canvas { width: 56px !important; height: 56px !important; }
 
 /* サインモーダル */
-#sign-modal {
-  display: none; position: fixed; inset: 0;
-  background: #000; z-index: 9999; flex-direction: column;
-}
-.sign-modal-header {
-  background: #0077cc; padding: 12px 16px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.sign-modal-header span { color: white; font-size: 15px; font-weight: 700; font-family: sans-serif; }
-.sign-modal-cancel {
-  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
-  color: white; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer;
-}
+#sign-modal { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; flex-direction: column; }
+.smh { background: #1565c0; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+.smh span { color: white; font-size: 15px; font-weight: 700; font-family: sans-serif; }
+.smh button { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
 #modal-sign-canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; background: white; }
-.sign-modal-footer {
-  background: #f0f4f8; padding: 10px 14px; display: flex; gap: 8px;
-}
-.sign-modal-footer button { flex: 1; padding: 11px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: sans-serif; }
-.btn-clear { background: white; border: 1.5px solid #d1dde8 !important; border: none; color: #333; }
-.btn-save-sign { background: #0077cc; color: white; flex: 2; }
+.smf { background: #eceff1; padding: 10px 14px; display: flex; gap: 8px; }
+.smf button { flex: 1; padding: 11px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: sans-serif; }
+.smf .bc { background: white; border: 1.5px solid #90a4ae !important; border: none; color: #333; }
+.smf .bs { background: #1565c0; color: white; flex: 2; }
 
 @media print {
   body { background: white; }
   .ctrl-bar { display: none !important; }
   .page-wrap { box-shadow: none; margin: 0; }
-  .sign-btn, .sign-btns { display: none; }
+  .sign-btn, .sign-sub { display: none !important; }
   #sign-modal { display: none !important; }
-  @page { margin: 6mm; size: A4; }
+  @page { margin: 5mm; size: A4; }
 }
 </style>
 </head>
 <body>
 
-<!-- 操作バー -->
 <div class="ctrl-bar">
-  <button class="ctrl-btn ctrl-btn-primary" onclick="window.print()">🖨 印刷 / PDF保存</button>
-  <button class="ctrl-btn ctrl-btn-secondary" onclick="saveToGas()">💾 サインを保存</button>
-  <button class="ctrl-btn ctrl-btn-ghost" onclick="window.close()">閉じる</button>
-  <span class="ctrl-note">※ サインをいただいてから保存・印刷してください</span>
+  <button class="ctrl-btn ctrl-btn-print" onclick="window.print()">🖨 印刷 / PDF保存</button>
+  <button class="ctrl-btn ctrl-btn-save" onclick="saveSign()">💾 サインを保存</button>
+  <button class="ctrl-btn ctrl-btn-close" onclick="window.close()">✕ 閉じる</button>
+  <span class="ctrl-note">サインをいただいてから保存・印刷してください</span>
 </div>
 
 <div class="page-wrap"><div class="report-page">
 
-  <div class="report-title">空調機器　点検・作業報告書</div>
-
-  <!-- 顧客情報 + 会社情報 -->
-  <div class="top-row">
-    <div class="customer-block">
-      <div class="cfield"><span class="clabel">お 客 様 名</span><span class="cvalue" id="p-customerName"></span><span class="csama">様</span></div>
-      <div class="cfield"><span class="clabel">ご　住　所</span><span class="cvalue" id="p-address"></span><span class="csama">様</span></div>
-      <div class="cfield"><span class="clabel">ご　依 頼 元</span><span class="cvalue" id="p-requester"></span><span class="csama">様</span></div>
+  <!-- ヘッダー：ロゴ＋タイトル＋会社情報 -->
+  <div class="page-header">
+    <div class="logo-block" style="background:white;padding:6px 10px;display:flex;align-items:center;justify-content:center;min-width:140px;">
+      <img src="data:image/png;base64,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" style="height:36px;width:auto;object-fit:contain;">
     </div>
-    <div class="company-box">
-      <div class="company-name"><span class="slogo">S</span>シオンテクノス株式会社</div>
-      <div class="crow"><span class="cl">本　　社：</span><span>札幌市東区北24条東4丁目1-1<br>電話 011-751-8686㈹　FAX 011-702-0070</span></div>
-      <div class="crow"><span class="cl">函館営業所：</span><span>函館市八幡町2番14号<br>電話 0138-44-7150　FAX 0138-44-7151</span></div>
-      <div class="crow"><span class="cl">旭川営業所：</span><span>旭川市末広2条23丁目3-12<br>電話 0166-73-8272　FAX 0166-73-8273</span></div>
+    <div class="title-block">
+      <h1>空調機器　点検・作業報告書</h1>
+    </div>
+    <div class="company-block">
+      <div class="company-name">シオンテクノス株式会社</div>
+      <div class="crow"><span class="cl">本　　社：</span><span>札幌市東区北24条東4丁目1-1　TEL 011-751-8686</span></div>
+      <div class="crow"><span class="cl">函館営業所：</span><span>函館市八幡町2番14号　TEL 0138-44-7150</span></div>
+      <div class="crow"><span class="cl">旭川営業所：</span><span>旭川市末広2条23丁目3-12　TEL 0166-73-8272</span></div>
     </div>
   </div>
 
-  <!-- 受付・機器情報 -->
-  <table class="info-tbl">
+  <!-- 顧客情報 -->
+  <table class="customer-table">
     <tr>
-      <td class="lbl">受 付 内 容</td>
-      <td class="val" colspan="5" id="p-reception"></td>
+      <td class="cl">お 客 様 名</td>
+      <td class="cv" id="p-customerName"></td>
+      <td class="cs">様</td>
+      <td style="width:20px"></td>
+      <td class="cl" style="width:52px">ご 依 頼 元</td>
+      <td class="cv" id="p-requester"></td>
+      <td class="cs">様</td>
     </tr>
     <tr>
-      <td class="lbl">系統名<br>設置場所</td>
-      <td class="val" colspan="3" id="p-systemName"></td>
-      <td class="lbl">品&nbsp;&nbsp;種</td>
-      <td class="val" id="p-productType"></td>
+      <td class="cl">ご　住　所</td>
+      <td class="cv" colspan="5" id="p-address"></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="cl">受 付 内 容</td>
+      <td class="cv" colspan="5" id="p-reception"></td>
+      <td></td>
+    </tr>
+  </table>
+
+  <!-- 機器情報 -->
+  <table class="info-tbl">
+    <tr>
+      <td class="lbl" style="width:52px">系統名<br>設置場所</td>
+      <td colspan="3" id="p-systemName"></td>
+      <td class="lbl" style="width:36px">品&nbsp;種</td>
+      <td id="p-productType"></td>
     </tr>
     <tr>
       <td class="lbl">メーカー</td>
-      <td class="val" id="p-maker"></td>
-      <td class="lbl" style="width:48px">機器型式</td>
-      <td class="val" id="p-model"></td>
+      <td id="p-maker"></td>
+      <td class="lbl" style="width:44px">機器型式</td>
+      <td id="p-model"></td>
       <td class="lbl">製&nbsp;&nbsp;番</td>
-      <td class="val" id="p-serial"></td>
+      <td id="p-serial"></td>
     </tr>
     <tr>
       <td class="lbl">使用冷媒</td>
-      <td class="val">R-<span id="p-refrigerant"></span></td>
-      <td class="lbl">出荷時<br>充填量</td>
-      <td class="val"><span id="p-refShip"></span> kg</td>
-      <td class="lbl">追加<br>充填量</td>
-      <td class="val"><span id="p-refAdd"></span> kg</td>
+      <td>R-<span id="p-refrigerant"></span></td>
+      <td class="lbl">出荷時充填量</td>
+      <td><span id="p-refShip"></span><span id="p-refShip-u"></span></td>
+      <td class="lbl">追加充填量</td>
+      <td><span id="p-refAdd"></span><span id="p-refAdd-u"></span></td>
     </tr>
     <tr>
-      <td class="lbl">冷媒<br>回収量</td>
-      <td class="val"><span id="p-refRecover"></span> kg</td>
-      <td class="lbl">冷媒<br>充填量</td>
-      <td class="val" colspan="3"><span id="p-refFill"></span> kg</td>
+      <td class="lbl">冷媒回収量</td>
+      <td><span id="p-refRecover"></span><span id="p-refRecover-u"></span></td>
+      <td class="lbl">冷媒充填量</td>
+      <td colspan="3"><span id="p-refFill"></span><span id="p-refFill-u"></span></td>
     </tr>
   </table>
 
   <!-- 作業日時 -->
   <div class="date-row">
     <span class="dl">作 業 日</span>
-    <span id="p-wy" class="ul"></span>年
-    <span id="p-wm" class="ul"></span>月
-    <span id="p-wd" class="ul"></span>日
+    <span id="p-wy" class="ul"></span>年<span id="p-wm" class="ul"></span>月<span id="p-wd" class="ul"></span>日
     &nbsp;&nbsp;
     <span class="dl">作 業 時 間</span>
-    <span id="p-wstart" class="ul" style="min-width:44px"></span>
+    <span id="p-wstart" class="ul" style="min-width:42px"></span>
     〜
-    <span id="p-wend" class="ul" style="min-width:44px"></span>
+    <span id="p-wend" class="ul" style="min-width:42px"></span>
   </div>
 
   <!-- 発生状況 -->
@@ -265,14 +285,14 @@ body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-siz
       <th>室内吸入温</th><th>室内吹出温</th><th>吐出圧力</th><th>吸入圧力</th><th>吐出温</th><th>吸入温</th><th>外気温</th><th>運転電流</th>
     </tr>
     <tr>
-      <td><span id="d-tii"></span><small>℃</small></td>
-      <td><span id="d-tio"></span><small>℃</small></td>
-      <td><span id="d-pd"></span><small>MPa</small></td>
-      <td><span id="d-ps"></span><small>MPa</small></td>
-      <td><span id="d-td"></span><small>℃</small></td>
-      <td><span id="d-ts"></span><small>℃</small></td>
-      <td><span id="d-to"></span><small>℃</small></td>
-      <td><span id="d-cur"></span><small>A</small></td>
+      <td><span id="d-tii"></span><small id="d-tii-u"></small></td>
+      <td><span id="d-tio"></span><small id="d-tio-u"></small></td>
+      <td><span id="d-pd"></span><small id="d-pd-u"></small></td>
+      <td><span id="d-ps"></span><small id="d-ps-u"></small></td>
+      <td><span id="d-td"></span><small id="d-td-u"></small></td>
+      <td><span id="d-ts"></span><small id="d-ts-u"></small></td>
+      <td><span id="d-to"></span><small id="d-to-u"></small></td>
+      <td><span id="d-cur"></span><small id="d-cur-u"></small></td>
     </tr>
   </table>
 
@@ -291,10 +311,10 @@ body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-siz
     <tr><td id="pn3"></td><td id="pq3"></td><td id="pu3"></td><td id="pc3"></td></tr>
   </table>
 
-  <!-- 作業確認 -->
-  <table class="conf-tbl">
+  <!-- 作業確認＋サイン -->
+  <table class="bottom-table">
     <tr>
-      <td class="lbl" style="width:68px">作&nbsp;業&nbsp;確&nbsp;認</td>
+      <td class="lbl" style="width:60px">作業確認</td>
       <td>
         <div class="cbrow">
           <div class="cbitem"><span class="cb" id="cb-完了"></span>&nbsp;完了</div>
@@ -302,70 +322,71 @@ body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-siz
           <div class="cbitem"><span class="cb" id="cb-見積書提出"></span>&nbsp;見積書提出</div>
         </div>
       </td>
-      <td class="lbl" style="width:48px">作業者</td>
-      <td id="p-worker" style="min-width:64px"></td>
-      <td class="lbl" style="width:48px">確認者</td>
-      <td id="p-confirmer" style="min-width:64px"></td>
-      <td class="lbl" style="width:18px;text-align:center">印</td>
-      <td style="width:48px"></td>
-    </tr>
-  </table>
-
-  <!-- お客様サイン -->
-  <table style="width:100%;border-collapse:collapse;margin-bottom:4px;">
-    <tr>
-      <td style="border:1px solid #000;background:#e1f5fe;font-weight:bold;text-align:center;width:56px;font-size:9px;padding:2px 3px;vertical-align:middle;">お客様<br>ご署名欄</td>
-      <td style="border:1px solid #000;padding:2px 4px;vertical-align:middle;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div id="sign-preview" onclick="openSignModal()" style="flex:1;height:36px;border:1px dashed #ccc;background:#fafafa;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:2px;overflow:hidden;">
-            <img id="sign-img" src="" style="display:none;max-height:34px;max-width:100%;">
-            <span id="sign-ph" style="font-size:9px;color:#bbb;">タップしてサイン ✏</span>
-          </div>
-          <div style="display:flex;gap:3px;flex-shrink:0;">
-            <button class="sign-btn" onclick="openSignModal()">✏ サイン</button>
-            <button class="sign-btn" onclick="clearSign()">クリア</button>
-          </div>
+      <td class="lbl" style="width:44px">作業者</td>
+      <td id="p-worker" style="min-width:60px"></td>
+      <td class="lbl" style="width:60px">お客様<br>ご署名</td>
+      <td style="min-width:120px; padding:2px 4px;">
+        <div class="sign-area" id="sign-preview" onclick="openSignModal()">
+          <img id="sign-img" src="">
+          <span class="sign-ph" id="sign-ph">タップしてサイン ✏</span>
+        </div>
+        <div class="sign-sub">
+          <button class="sign-btn" onclick="openSignModal()">✏ サイン</button>
+          <button class="sign-btn" onclick="clearSignData()">クリア</button>
         </div>
       </td>
     </tr>
   </table>
 
-  <!-- フッター + QR -->
+  <!-- フッター＋QR -->
   <div class="footer-row">
-    <div class="footer-logo"><span class="slogo" style="width:16px;height:16px;font-size:10px">S</span>シオンテクノス株式会社</div>
+    <div class="footer-logo">
+      <img src="data:image/png;base64,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" style="height:22px;width:auto;object-fit:contain;">
+    </div>
     <div class="qr-wrap">
       <div class="qr-lbl">報告書をスマホで確認<br><span id="qr-url-text" style="font-size:7px;color:#aaa"></span></div>
       <div id="qr-code"></div>
     </div>
   </div>
 
-</div></div><!-- .report-page .page-wrap -->
+</div></div>
 
 <!-- サインモーダル -->
 <div id="sign-modal">
-  <div class="sign-modal-header">
-    <span>ご署名をお願いします</span>
-    <button class="sign-modal-cancel" onclick="closeSignModal()">キャンセル</button>
+  <div class="smh">
+    <span>お客様サインをお願いします</span>
+    <button onclick="closeSignModal()">キャンセル</button>
   </div>
   <div style="flex:1;position:relative;overflow:hidden;">
     <canvas id="modal-sign-canvas"></canvas>
     <div style="position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:13px;color:#bbb;pointer-events:none;font-family:sans-serif;">こちらにサインしてください</div>
   </div>
-  <div class="sign-modal-footer">
-    <button class="btn-clear" onclick="clearModalSign()">クリア</button>
-    <button class="btn-save-sign" onclick="saveSign()">✓ このサインで確定</button>
+  <div class="smf">
+    <button class="bc" onclick="clearModalSign()">クリア</button>
+    <button class="bs" onclick="confirmSign()">✓ このサインで確定</button>
   </div>
 </div>
 
 <script src="js/config.js"></script>
 <script>
-// ===== データ読込 =====
 const urlParams = new URLSearchParams(location.search);
 const data = JSON.parse(decodeURIComponent(urlParams.get('data') || '{}'));
 
+// 値をセット（空・null・undefinedはスキップ）
 function set(id, val) {
   const el = document.getElementById(id);
-  if (el && val != null && val !== '') el.textContent = val;
+  if (!el) return;
+  if (val != null && val !== '' && val !== null) el.textContent = val;
+}
+// 単位付きセット（値があるときだけ単位も表示）
+function setU(id, val, unit) {
+  const el = document.getElementById(id);
+  const uel = document.getElementById(id + '-u');
+  if (!el) return;
+  if (val != null && val !== '') {
+    el.textContent = val;
+    if (uel) uel.textContent = ' ' + unit;
+  }
 }
 
 set('p-customerName', data.customerName);
@@ -378,11 +399,12 @@ set('p-maker', data.maker);
 set('p-model', data.model);
 set('p-serial', data.serial);
 set('p-refrigerant', (data.refrigerant||'').replace(/^R-?/i,''));
-set('p-refShip', data.refShip != null && data.refShip !== '' ? data.refShip : '');
-set('p-refAdd', data.refAdd != null && data.refAdd !== '' ? data.refAdd : '');
-set('p-refRecover', data.refRecover != null && data.refRecover !== '' ? data.refRecover : '');
-set('p-refFill', data.refFill != null && data.refFill !== '' ? data.refFill : '');
+setU('p-refShip', data.refShip, 'kg');
+setU('p-refAdd', data.refAdd, 'kg');
+setU('p-refRecover', data.refRecover, 'kg');
+setU('p-refFill', data.refFill, 'kg');
 
+// 作業日（空なら何も表示しない）
 if (data.workDate) {
   const d = new Date(data.workDate);
   if (!isNaN(d)) {
@@ -391,20 +413,23 @@ if (data.workDate) {
     set('p-wd', d.getDate());
   }
 }
-set('p-wstart', data.workStart);
-set('p-wend', data.workEnd);
+// 作業時間（入力済みのみ）
+if (data.workStart && data.workStart.trim()) set('p-wstart', data.workStart);
+if (data.workEnd && data.workEnd.trim()) set('p-wend', data.workEnd);
+
 set('p-symptom', data.symptom);
 set('p-cause', data.cause);
 set('p-workContent', data.workContent);
 set('p-remarks', data.remarks);
-set('d-tii', data.tempIndoorIn != null && data.tempIndoorIn !== '' ? data.tempIndoorIn : '');
-set('d-tio', data.tempIndoorOut != null && data.tempIndoorOut !== '' ? data.tempIndoorOut : '');
-set('d-pd', data.pressDischarge != null && data.pressDischarge !== '' ? data.pressDischarge : '');
-set('d-ps', data.pressSuction != null && data.pressSuction !== '' ? data.pressSuction : '');
-set('d-td', data.tempDischarge != null && data.tempDischarge !== '' ? data.tempDischarge : '');
-set('d-ts', data.tempSuction != null && data.tempSuction !== '' ? data.tempSuction : '');
-set('d-to', data.tempOutdoor != null && data.tempOutdoor !== '' ? data.tempOutdoor : '');
-set('d-cur', data.current != null && data.current !== '' ? data.current : '');
+
+setU('d-tii', data.tempIndoorIn, '℃');
+setU('d-tio', data.tempIndoorOut, '℃');
+setU('d-pd', data.pressDischarge, 'MPa');
+setU('d-ps', data.pressSuction, 'MPa');
+setU('d-td', data.tempDischarge, '℃');
+setU('d-ts', data.tempSuction, '℃');
+setU('d-to', data.tempOutdoor, '℃');
+setU('d-cur', data.current, 'A');
 
 (data.parts||[]).slice(0,4).forEach((p,i) => {
   set('pn'+i, p.name); set('pq'+i, p.qty); set('pu'+i, p.unit); set('pc'+i, p.code);
@@ -413,111 +438,99 @@ set('d-cur', data.current != null && data.current !== '' ? data.current : '');
 const cbEl = document.getElementById('cb-'+(data.status||''));
 if (cbEl) cbEl.textContent = '✓';
 set('p-worker', data.worker);
-set('p-confirmer', data.confirmer);
 
-// ===== QRコード =====
+// QRコード
 const baseUrl = location.origin + location.pathname.replace('print.html','');
 const qrUrl = baseUrl + 'view.html?id=' + (data.id||'');
 document.getElementById('qr-url-text').textContent = qrUrl.replace('https://','');
 if (typeof QRCode !== 'undefined' && data.id) {
   new QRCode(document.getElementById('qr-code'), {
-    text: qrUrl, width: 60, height: 60,
+    text: qrUrl, width: 56, height: 56,
     colorDark: '#000', colorLight: '#fff',
     correctLevel: QRCode.CorrectLevel.M
   });
 }
 
-// ===== サインモーダル =====
-const modalCanvas = document.getElementById('modal-sign-canvas');
-const modalCtx = modalCanvas.getContext('2d');
-let modalDrawing = false;
-
-function resizeModal() {
-  const dpr = window.devicePixelRatio || 1;
-  const w = modalCanvas.offsetWidth;
-  const h = modalCanvas.offsetHeight;
-  modalCanvas.width = w * dpr;
-  modalCanvas.height = h * dpr;
-  modalCtx.scale(dpr, dpr);
-  modalCtx.strokeStyle = '#111';
-  modalCtx.lineWidth = 2.5;
-  modalCtx.lineCap = 'round';
-  modalCtx.lineJoin = 'round';
-}
-
-function mPos(e) {
-  const r = modalCanvas.getBoundingClientRect();
-  const t = e.touches ? e.touches[0] : e;
-  return { x: t.clientX - r.left, y: t.clientY - r.top };
-}
-
-modalCanvas.addEventListener('mousedown', e => { modalDrawing=true; const p=mPos(e); modalCtx.beginPath(); modalCtx.moveTo(p.x,p.y); });
-modalCanvas.addEventListener('mousemove', e => { if(!modalDrawing) return; const p=mPos(e); modalCtx.lineTo(p.x,p.y); modalCtx.stroke(); });
-modalCanvas.addEventListener('mouseup', () => modalDrawing=false);
-modalCanvas.addEventListener('mouseleave', () => modalDrawing=false);
-modalCanvas.addEventListener('touchstart', e => { e.preventDefault(); modalDrawing=true; const p=mPos(e); modalCtx.beginPath(); modalCtx.moveTo(p.x,p.y); });
-modalCanvas.addEventListener('touchmove', e => { e.preventDefault(); if(!modalDrawing) return; const p=mPos(e); modalCtx.lineTo(p.x,p.y); modalCtx.stroke(); });
-modalCanvas.addEventListener('touchend', () => modalDrawing=false);
-
-window.openSignModal = function() {
-  const modal = document.getElementById('sign-modal');
-  modal.style.display = 'flex';
-  setTimeout(resizeModal, 60);
-};
-window.closeSignModal = function() {
-  document.getElementById('sign-modal').style.display = 'none';
-};
-window.clearModalSign = function() {
-  modalCtx.clearRect(0, 0, modalCanvas.width, modalCanvas.height);
-};
-window.saveSign = function() {
-  const pixels = modalCtx.getImageData(0, 0, modalCanvas.width, modalCanvas.height).data;
-  if (!pixels.some((v,i) => i%4===3 && v>0)) { alert('サインを入力してください'); return; }
-  const dataUrl = modalCanvas.toDataURL('image/png');
-  const img = document.getElementById('sign-img');
-  img.src = dataUrl;
-  img.style.display = 'block';
-  document.getElementById('sign-ph').style.display = 'none';
-  closeSignModal();
-};
-window.clearSign = function() {
-  const img = document.getElementById('sign-img');
-  img.src = ''; img.style.display = 'none';
-  document.getElementById('sign-ph').style.display = '';
-  modalCtx.clearRect(0, 0, modalCanvas.width, modalCanvas.height);
-};
-
-// ===== サイン保存（ローカルストレージ）=====
-// サイン画像はデバイスに保存。印刷時はそのまま印刷されます。
-window.saveToGas = function() {
-  const img = document.getElementById('sign-img');
-  const signData = (img.src && img.style.display !== 'none') ? img.src : '';
-  if (!signData) {
-    alert('サインがありません。先にサインしてください。');
-    return;
-  }
-  try {
-    localStorage.setItem('sign_' + data.id, signData);
-    alert('✓ サインを保存しました\nこのまま印刷・PDF保存してください。');
-  } catch(e) {
-    // ローカルストレージが使えない場合はそのまま印刷を促す
-    alert('✓ サインが入力されています。\nこのまま印刷・PDF保存してください。');
-  }
-};
-
-// ページ読込時に保存済みサインを復元
-(function restoreSign() {
+// サイン復元
+(function() {
   if (!data.id) return;
   try {
     const saved = localStorage.getItem('sign_' + data.id);
     if (saved) {
       const img = document.getElementById('sign-img');
-      img.src = saved;
-      img.style.display = 'block';
+      img.src = saved; img.style.display = 'block';
       document.getElementById('sign-ph').style.display = 'none';
     }
   } catch(e) {}
 })();
+
+// ===== サインモーダル =====
+const mc = document.getElementById('modal-sign-canvas');
+const mx = mc.getContext('2d');
+let md = false;
+
+function resizeMc() {
+  const dpr = window.devicePixelRatio || 1;
+  mc.width = mc.offsetWidth * dpr;
+  mc.height = mc.offsetHeight * dpr;
+  mx.scale(dpr, dpr);
+  mx.strokeStyle = '#111'; mx.lineWidth = 2.5;
+  mx.lineCap = 'round'; mx.lineJoin = 'round';
+}
+function mPos(e) {
+  const r = mc.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return { x: t.clientX-r.left, y: t.clientY-r.top };
+}
+mc.addEventListener('mousedown', e => { md=true; const p=mPos(e); mx.beginPath(); mx.moveTo(p.x,p.y); });
+mc.addEventListener('mousemove', e => { if(!md) return; const p=mPos(e); mx.lineTo(p.x,p.y); mx.stroke(); });
+mc.addEventListener('mouseup', () => md=false);
+mc.addEventListener('mouseleave', () => md=false);
+mc.addEventListener('touchstart', e => { e.preventDefault(); md=true; const p=mPos(e); mx.beginPath(); mx.moveTo(p.x,p.y); });
+mc.addEventListener('touchmove', e => { e.preventDefault(); if(!md) return; const p=mPos(e); mx.lineTo(p.x,p.y); mx.stroke(); });
+mc.addEventListener('touchend', () => md=false);
+
+window.openSignModal = function() {
+  document.getElementById('sign-modal').style.display = 'flex';
+  setTimeout(resizeMc, 60);
+};
+window.closeSignModal = function() {
+  document.getElementById('sign-modal').style.display = 'none';
+};
+window.clearModalSign = function() {
+  mx.clearRect(0, 0, mc.width, mc.height);
+};
+window.confirmSign = function() {
+  const px = mx.getImageData(0,0,mc.width,mc.height).data;
+  if (!px.some((v,i) => i%4===3 && v>0)) { alert('サインを入力してください'); return; }
+  const url = mc.toDataURL('image/png');
+  const img = document.getElementById('sign-img');
+  img.src = url; img.style.display = 'block';
+  document.getElementById('sign-ph').style.display = 'none';
+  closeSignModal();
+};
+window.clearSignData = function() {
+  const img = document.getElementById('sign-img');
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('sign-ph').style.display = '';
+  mx.clearRect(0,0,mc.width,mc.height);
+  try { localStorage.removeItem('sign_' + data.id); } catch(e) {}
+};
+
+// 保存
+window.saveSign = function() {
+  const img = document.getElementById('sign-img');
+  if (!img.src || img.style.display === 'none') {
+    alert('サインがありません。先にサインしてください。');
+    return;
+  }
+  try {
+    localStorage.setItem('sign_' + data.id, img.src);
+    alert('✓ サインを保存しました\nこのまま印刷・PDF保存してください。');
+  } catch(e) {
+    alert('✓ サインが入力されています。\nそのまま印刷・PDF保存してください。');
+  }
+};
 </script>
 </body>
 </html>

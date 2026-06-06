@@ -165,29 +165,24 @@ function render(r) {
   `;
 }
 
-// GASからJSONPで取得
-function loadReport() {
+// GASからfetchで取得
+async function loadReport() {
   if (!reportId) {
     document.getElementById('content').innerHTML = '<div class="not-found"><div class="icon">❌</div><p>報告書IDが指定されていません</p></div>';
     return;
   }
-  const cbName = 'viewCallback_' + Date.now();
-  const url = GAS_URL + '?action=get&id=' + encodeURIComponent(reportId) + '&callback=' + cbName;
-  window[cbName] = function(json) {
-    delete window[cbName];
-    document.head.removeChild(script);
+  try {
+    const url = GAS_URL + '?action=get&id=' + encodeURIComponent(reportId);
+    const res = await fetch(url, { redirect: 'follow' });
+    const json = await res.json();
     if (json.status === 'error' || !json.data) {
       document.getElementById('content').innerHTML = '<div class="not-found"><div class="icon">❌</div><p>報告書が見つかりません</p></div>';
       return;
     }
     render(json.data);
-  };
-  const script = document.createElement('script');
-  script.src = url;
-  script.onerror = () => {
+  } catch(e) {
     document.getElementById('content').innerHTML = '<div class="not-found"><div class="icon">⚠️</div><p>読み込みに失敗しました</p></div>';
-  };
-  document.head.appendChild(script);
+  }
 }
 
 loadReport();

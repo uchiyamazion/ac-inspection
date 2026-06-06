@@ -21,6 +21,20 @@ function makeRes(data, status) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// POSTリクエスト（サイン保存など大きいデータ用）
+function doPost(e) {
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const action = body.action;
+    if (action === 'update') return makeRes(updateRecord(body.id, body.data));
+    if (action === 'create') return makeRes(createRecord(body.data));
+    if (action === 'delete') return makeRes(deleteRecord(body.id));
+    return makeRes({ message: '不明なaction' }, 'error');
+  } catch (err) {
+    return makeRes({ message: err.message }, 'error');
+  }
+}
+
 // GETリクエスト（list / get / create / update / delete）
 function doGet(e) {
   const p = e.parameter;

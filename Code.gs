@@ -10,7 +10,7 @@ const COLUMNS = [
   'tempDischarge', 'tempSuction', 'tempOutdoor', 'current',
   'parts',
   'status', 'worker', 'confirmer',
-  'createdAt', 'updatedAt'
+  'createdAt', 'updatedAt', 'customerSign'
 ];
 
 // CORSヘッダー付きレスポンス

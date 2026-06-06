@@ -256,8 +256,8 @@ body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-siz
   <div class="sign-section">
     <div class="sign-block" style="flex:1">
       <div class="sign-label">お客様 ご署名欄（指またはタッチペンでサインをお願いします）</div>
-      <div class="sign-wrap">
-        <canvas id="cust-sign" height="56"></canvas>
+      <div class="sign-wrap" style="height:60px;overflow:hidden;">
+        <canvas id="cust-sign" style="width:100%;height:60px;display:block;"></canvas>
         <div class="sign-guide">↑ こちらにサインをお願いします</div>
       </div>
       <button class="sign-btn" onclick="pads.cust.clear()">クリア</button>
@@ -350,8 +350,8 @@ function makePad(canvasId) {
 
   function resize() {
     const dpr = window.devicePixelRatio || 1;
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
+    const w = canvas.offsetWidth || canvas.parentElement.offsetWidth || 300;
+    const h = 60;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     ctx.scale(dpr, dpr);

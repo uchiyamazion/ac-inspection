@@ -7,302 +7,361 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-size: 11px; background: #ddd; color: #000; }
+body { font-family: 'MS Gothic','Hiragino Kaku Gothic ProN',sans-serif; font-size: 11px; background: #ccc; color: #000; }
 
-.print-controls {
-  max-width: 794px; margin: 0 auto;
-  padding: 10px 16px; background: #fff;
+/* 操作バー */
+.ctrl-bar {
+  background: #fff; padding: 10px 16px;
   display: flex; gap: 8px; align-items: center;
   border-bottom: 2px solid #0077cc;
+  position: sticky; top: 0; z-index: 50;
 }
-.print-btn { padding: 8px 20px; background: #0077cc; color: white; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; font-weight: bold; }
-.print-btn:hover { background: #005fa3; }
-.close-btn { padding: 8px 16px; background: #eee; border: none; border-radius: 4px; font-size: 13px; cursor: pointer; }
-.print-note { font-size: 11px; color: #666; }
+.ctrl-btn { padding: 8px 16px; border: none; border-radius: 5px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.ctrl-btn-primary { background: #0077cc; color: white; }
+.ctrl-btn-secondary { background: #00a896; color: white; }
+.ctrl-btn-ghost { background: #f0f0f0; color: #333; }
+.ctrl-note { font-size: 11px; color: #888; margin-left: 4px; }
 
-.page-wrap { max-width: 794px; margin: 16px auto 40px; background: white; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
-.report-page { width: 100%; padding: 18px 22px 20px; position: relative; background: white; }
+/* A4用紙 */
+.page-wrap { max-width: 794px; margin: 16px auto 40px; background: white; box-shadow: 0 2px 16px rgba(0,0,0,0.2); }
+.report-page { padding: 16px 20px 18px; position: relative; }
 
-.page-label { position: absolute; top: 8px; right: 10px; font-size: 10px; border: 1px solid #000; padding: 1px 6px; }
-.report-title { text-align: center; font-size: 17px; font-weight: bold; letter-spacing: 0.15em; border: 2px solid #4fc3f7; padding: 5px 0; margin-bottom: 8px; }
+/* タイトル */
+.report-title {
+  text-align: center; font-size: 16px; font-weight: bold;
+  letter-spacing: 0.2em; border: 2px solid #29b6f6;
+  padding: 5px 0; margin-bottom: 8px; color: #000;
+}
 
-/* 顧客＋会社 */
-.header-row { display: flex; gap: 8px; margin-bottom: 7px; }
-.customer-block { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-.customer-field { display: flex; align-items: flex-end; gap: 4px; border-bottom: 1px solid #000; padding-bottom: 2px; }
-.customer-label { font-size: 10px; white-space: nowrap; min-width: 52px; }
-.customer-value { flex: 1; font-size: 12px; font-weight: bold; min-height: 16px; padding: 0 4px; }
-.sama { font-size: 11px; white-space: nowrap; }
-.company-box { border: 2px solid #4fc3f7; padding: 5px 7px; min-width: 195px; font-size: 9px; line-height: 1.65; }
-.company-name { font-size: 12px; font-weight: bold; color: #0077cc; margin-bottom: 3px; }
-.s-logo { display: inline-block; background: #0077cc; color: white; border-radius: 50%; width: 14px; height: 14px; text-align: center; line-height: 14px; font-size: 9px; margin-right: 2px; }
-.company-row { display: flex; gap: 3px; }
-.company-row .lbl { min-width: 52px; font-weight: bold; }
+/* 顧客+会社 */
+.top-row { display: flex; gap: 8px; margin-bottom: 6px; }
+.customer-block { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.cfield { display: flex; align-items: flex-end; border-bottom: 1px solid #000; padding-bottom: 1px; gap: 4px; }
+.clabel { font-size: 10px; min-width: 54px; white-space: nowrap; }
+.cvalue { flex: 1; font-size: 12px; font-weight: bold; min-height: 15px; padding: 0 4px; }
+.csama { font-size: 10px; white-space: nowrap; }
+
+.company-box {
+  border: 2px solid #29b6f6; padding: 5px 7px;
+  min-width: 188px; font-size: 8.5px; line-height: 1.6;
+}
+.company-name { font-size: 12px; font-weight: bold; color: #0077cc; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
+.slogo { display: inline-flex; align-items: center; justify-content: center; background: #0077cc; color: white; border-radius: 50%; width: 14px; height: 14px; font-size: 8px; font-weight: bold; flex-shrink: 0; }
+.crow { display: flex; gap: 2px; margin-bottom: 1px; }
+.crow .cl { min-width: 54px; font-weight: bold; }
 
 /* 情報テーブル */
-.info-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 10px; }
-.info-table td { border: 1px solid #000; padding: 2px 4px; vertical-align: middle; }
-.info-table .lbl { background: #e3f4fc; font-weight: bold; text-align: center; white-space: nowrap; }
+.info-tbl { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+.info-tbl td { border: 1px solid #000; padding: 2px 4px; vertical-align: middle; font-size: 10px; }
+.info-tbl .lbl { background: #e1f5fe; font-weight: bold; text-align: center; white-space: nowrap; width: 1%; }
+.info-tbl .val { }
 
-.work-date-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: 11px; }
-.work-date-row .wlbl { font-weight: bold; }
-.uline { border-bottom: 1px solid #000; min-width: 36px; display: inline-block; text-align: center; padding: 0 3px; }
+/* 作業日 */
+.date-row { display: flex; align-items: center; gap: 8px; font-size: 10.5px; margin: 3px 0 3px; }
+.date-row .dl { font-weight: bold; }
+.ul { border-bottom: 1px solid #000; min-width: 32px; display: inline-block; text-align: center; padding: 0 2px; }
 
 /* セクションテーブル */
-.sec-table { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 10px; }
-.sec-table td { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
-.sec-table .rlbl { background: #e3f4fc; font-weight: bold; text-align: center; white-space: nowrap; width: 20px; writing-mode: vertical-rl; padding: 6px 3px; }
-.sec-table .slbl { background: #e3f4fc; font-weight: bold; text-align: center; white-space: nowrap; width: 36px; writing-mode: vertical-rl; padding: 6px 3px; }
-.sec-table .cell { white-space: pre-wrap; font-size: 10.5px; line-height: 1.55; }
+.sec-tbl { width: 100%; border-collapse: collapse; margin-bottom: 3px; }
+.sec-tbl td { border: 1px solid #000; padding: 2px 4px; vertical-align: top; font-size: 10px; }
+.sec-tbl .vtit {
+  background: #e1f5fe; font-weight: bold; text-align: center;
+  writing-mode: vertical-rl; white-space: nowrap;
+  padding: 6px 3px; width: 18px;
+}
+.sec-tbl .vsub {
+  background: #e1f5fe; font-weight: bold; text-align: center;
+  writing-mode: vertical-rl; white-space: nowrap;
+  padding: 4px 3px; width: 32px;
+}
+.sec-tbl .cell { white-space: pre-wrap; line-height: 1.5; min-height: 40px; }
+.sec-tbl .cell-lg { min-height: 64px; }
+.sec-tbl .cell-sm { min-height: 28px; }
 
 /* 運転データ */
-.data-table { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 9.5px; }
-.data-table th { border: 1px solid #000; padding: 2px; background: #e3f4fc; text-align: center; font-weight: bold; white-space: nowrap; }
-.data-table td { border: 1px solid #000; padding: 2px 3px; text-align: center; height: 22px; }
-.data-table .rlbl { background: #e3f4fc; font-weight: bold; font-size: 9px; }
+.data-tbl { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 9px; }
+.data-tbl th { border: 1px solid #000; padding: 2px 3px; background: #e1f5fe; text-align: center; font-weight: bold; white-space: nowrap; }
+.data-tbl td { border: 1px solid #000; padding: 2px 3px; text-align: center; height: 20px; }
+.data-tbl .vtit { background: #e1f5fe; font-weight: bold; writing-mode: vertical-rl; padding: 4px 2px; width: 44px; font-size: 9px; text-align: center; }
 
 /* 部品 */
-.parts-table { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 10px; }
-.parts-table th { border: 1px solid #000; padding: 2px 4px; background: #e3f4fc; text-align: center; font-weight: bold; }
-.parts-table td { border: 1px solid #000; padding: 2px 4px; height: 18px; }
-.parts-table .rlbl { background: #e3f4fc; font-weight: bold; text-align: center; width: 20px; writing-mode: vertical-rl; font-size: 9px; }
+.parts-tbl { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 10px; }
+.parts-tbl th { border: 1px solid #000; padding: 2px 4px; background: #e1f5fe; text-align: center; font-weight: bold; }
+.parts-tbl td { border: 1px solid #000; padding: 2px 4px; height: 17px; }
+.parts-tbl .vtit { background: #e1f5fe; font-weight: bold; text-align: center; writing-mode: vertical-rl; width: 18px; font-size: 9px; }
 
 /* 確認 */
-.confirm-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 10px; }
-.confirm-table td { border: 1px solid #000; padding: 3px 5px; vertical-align: middle; }
-.confirm-table .lbl { background: #e3f4fc; font-weight: bold; text-align: center; white-space: nowrap; }
-.cb { width: 11px; height: 11px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 11px; font-size: 9px; }
-.cbrow { display: flex; gap: 10px; align-items: center; }
+.conf-tbl { width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 10px; }
+.conf-tbl td { border: 1px solid #000; padding: 3px 5px; vertical-align: middle; }
+.conf-tbl .lbl { background: #e1f5fe; font-weight: bold; text-align: center; white-space: nowrap; }
+.cbrow { display: flex; gap: 12px; align-items: center; }
 .cbitem { display: flex; align-items: center; gap: 2px; }
+.cb { width: 10px; height: 10px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 10px; font-size: 9px; }
 
-/* サイン */
-.sign-section { display: flex; gap: 6px; margin-bottom: 6px; }
-.sign-block { flex: 1; border: 1px solid #000; padding: 3px; }
-.sign-label { font-size: 9px; font-weight: bold; text-align: center; background: #e3f4fc; padding: 2px; margin-bottom: 2px; }
-.sign-wrap { position: relative; border: 1px solid #ccc; background: #fafafa; }
-.sign-wrap canvas { display: block; width: 100%; cursor: crosshair; touch-action: none; }
-.sign-guide { position: absolute; bottom: 3px; left: 0; right: 0; font-size: 8px; color: #bbb; text-align: center; pointer-events: none; }
-.sign-btn { font-size: 9px; border: 1px solid #ccc; background: #f5f5f5; padding: 1px 8px; cursor: pointer; border-radius: 2px; margin-top: 2px; float: right; }
+/* サイン欄 */
+.sign-row { display: flex; gap: 6px; margin-bottom: 4px; align-items: stretch; }
+.sign-block { border: 1px solid #000; padding: 3px 4px; flex: 1; }
+.sign-lbl { font-size: 9px; font-weight: bold; text-align: center; background: #e1f5fe; padding: 1px; margin-bottom: 2px; }
+.sign-preview {
+  height: 44px; border: 1px solid #ccc; background: #fafafa;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 2px; overflow: hidden;
+}
+.sign-preview img { max-height: 42px; max-width: 100%; display: none; }
+.sign-placeholder { font-size: 9px; color: #bbb; }
+.sign-btns { display: flex; gap: 3px; margin-top: 2px; justify-content: flex-end; }
+.sign-btn { font-size: 9px; border: 1px solid #ccc; background: #f5f5f5; padding: 1px 7px; cursor: pointer; border-radius: 2px; }
 
 /* フッター */
-.footer-row { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
-.footer-logo { font-size: 13px; font-weight: bold; color: #0077cc; letter-spacing: 0.08em; }
-.footer-logo .s-logo { width: 16px; height: 16px; line-height: 16px; font-size: 10px; }
-.qr-block { display: flex; align-items: center; gap: 6px; }
-.qr-label { font-size: 8px; color: #555; text-align: center; line-height: 1.5; }
-#qr-code img, #qr-code canvas { width: 68px !important; height: 68px !important; }
+.footer-row { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; }
+.footer-logo { font-size: 12px; font-weight: bold; color: #0077cc; display: flex; align-items: center; gap: 4px; }
+.qr-wrap { display: flex; align-items: center; gap: 5px; }
+.qr-lbl { font-size: 8px; color: #666; text-align: right; line-height: 1.5; }
+#qr-code img, #qr-code canvas { width: 60px !important; height: 60px !important; }
+
+/* サインモーダル */
+#sign-modal {
+  display: none; position: fixed; inset: 0;
+  background: #000; z-index: 9999; flex-direction: column;
+}
+.sign-modal-header {
+  background: #0077cc; padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sign-modal-header span { color: white; font-size: 15px; font-weight: 700; font-family: sans-serif; }
+.sign-modal-cancel {
+  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+  color: white; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer;
+}
+#modal-sign-canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; background: white; }
+.sign-modal-footer {
+  background: #f0f4f8; padding: 10px 14px; display: flex; gap: 8px;
+}
+.sign-modal-footer button { flex: 1; padding: 11px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: sans-serif; }
+.btn-clear { background: white; border: 1.5px solid #d1dde8 !important; border: none; color: #333; }
+.btn-save-sign { background: #0077cc; color: white; flex: 2; }
 
 @media print {
   body { background: white; }
-  .print-controls { display: none !important; }
+  .ctrl-bar { display: none !important; }
   .page-wrap { box-shadow: none; margin: 0; }
-  .sign-btn { display: none; }
-  @page { margin: 8mm; size: A4; }
+  .sign-btn, .sign-btns { display: none; }
+  #sign-modal { display: none !important; }
+  @page { margin: 6mm; size: A4; }
 }
 </style>
 </head>
 <body>
 
-<div class="print-controls">
-  <button class="print-btn" onclick="window.print()">🖨 印刷 / PDF保存</button>
-  <button class="close-btn" onclick="window.close()">閉じる</button>
-  <span class="print-note">※ サインをいただいてから印刷してください</span>
+<!-- 操作バー -->
+<div class="ctrl-bar">
+  <button class="ctrl-btn ctrl-btn-primary" onclick="window.print()">🖨 印刷 / PDF保存</button>
+  <button class="ctrl-btn ctrl-btn-secondary" onclick="saveToGas()">💾 サインを保存</button>
+  <button class="ctrl-btn ctrl-btn-ghost" onclick="window.close()">閉じる</button>
+  <span class="ctrl-note">※ サインをいただいてから保存・印刷してください</span>
 </div>
 
 <div class="page-wrap"><div class="report-page">
 
   <div class="report-title">空調機器　点検・作業報告書</div>
 
-  <!-- 顧客 + 会社情報 -->
-  <div class="header-row">
+  <!-- 顧客情報 + 会社情報 -->
+  <div class="top-row">
     <div class="customer-block">
-      <div class="customer-field"><span class="customer-label">お客様名</span><span class="customer-value" id="p-customerName"></span><span class="sama">様</span></div>
-      <div class="customer-field"><span class="customer-label">ご　住　所</span><span class="customer-value" id="p-address"></span><span class="sama">様</span></div>
-      <div class="customer-field"><span class="customer-label">ご　依頼元</span><span class="customer-value" id="p-requester"></span><span class="sama">様</span></div>
+      <div class="cfield"><span class="clabel">お 客 様 名</span><span class="cvalue" id="p-customerName"></span><span class="csama">様</span></div>
+      <div class="cfield"><span class="clabel">ご　住　所</span><span class="cvalue" id="p-address"></span><span class="csama">様</span></div>
+      <div class="cfield"><span class="clabel">ご　依 頼 元</span><span class="cvalue" id="p-requester"></span><span class="csama">様</span></div>
     </div>
     <div class="company-box">
-      <div class="company-name"><span class="s-logo">S</span>シオンテクノス株式会社</div>
-      <div class="company-row"><span class="lbl">本&nbsp;&nbsp;&nbsp;社：</span><span>札幌市東区北24条東4丁目1-1<br>電話 011-751-8686㈹　FAX 011-702-0070</span></div>
-      <div class="company-row"><span class="lbl">函館営業所：</span><span>函館市八幡町2番14号<br>電話 0138-44-7150　FAX 0138-44-7151</span></div>
-      <div class="company-row"><span class="lbl">旭川営業所：</span><span>旭川市末広2条23丁目3-12<br>電話 0166-73-8272　FAX 0166-73-8273</span></div>
+      <div class="company-name"><span class="slogo">S</span>シオンテクノス株式会社</div>
+      <div class="crow"><span class="cl">本　　社：</span><span>札幌市東区北24条東4丁目1-1<br>電話 011-751-8686㈹　FAX 011-702-0070</span></div>
+      <div class="crow"><span class="cl">函館営業所：</span><span>函館市八幡町2番14号<br>電話 0138-44-7150　FAX 0138-44-7151</span></div>
+      <div class="crow"><span class="cl">旭川営業所：</span><span>旭川市末広2条23丁目3-12<br>電話 0166-73-8272　FAX 0166-73-8273</span></div>
     </div>
   </div>
 
-  <!-- 機器情報 -->
-  <table class="info-table">
+  <!-- 受付・機器情報 -->
+  <table class="info-tbl">
     <tr>
-      <td class="lbl" style="width:60px">受付内容</td>
-      <td colspan="5" id="p-reception"></td>
+      <td class="lbl">受 付 内 容</td>
+      <td class="val" colspan="5" id="p-reception"></td>
     </tr>
     <tr>
       <td class="lbl">系統名<br>設置場所</td>
-      <td colspan="3" id="p-systemName"></td>
-      <td class="lbl" style="width:40px">品種</td>
-      <td id="p-productType"></td>
+      <td class="val" colspan="3" id="p-systemName"></td>
+      <td class="lbl">品&nbsp;&nbsp;種</td>
+      <td class="val" id="p-productType"></td>
     </tr>
     <tr>
       <td class="lbl">メーカー</td>
-      <td id="p-maker"></td>
-      <td class="lbl" style="width:50px">機器型式</td>
-      <td id="p-model"></td>
-      <td class="lbl">製番</td>
-      <td id="p-serial"></td>
+      <td class="val" id="p-maker"></td>
+      <td class="lbl" style="width:48px">機器型式</td>
+      <td class="val" id="p-model"></td>
+      <td class="lbl">製&nbsp;&nbsp;番</td>
+      <td class="val" id="p-serial"></td>
     </tr>
     <tr>
       <td class="lbl">使用冷媒</td>
-      <td>R-<span id="p-refrigerant"></span></td>
-      <td class="lbl">出荷時充填量</td>
-      <td><span id="p-refShip"></span> kg</td>
-      <td class="lbl">追加充填量</td>
-      <td><span id="p-refAdd"></span> kg</td>
+      <td class="val">R-<span id="p-refrigerant"></span></td>
+      <td class="lbl">出荷時<br>充填量</td>
+      <td class="val"><span id="p-refShip"></span> kg</td>
+      <td class="lbl">追加<br>充填量</td>
+      <td class="val"><span id="p-refAdd"></span> kg</td>
     </tr>
     <tr>
-      <td class="lbl">冷媒回収量</td>
-      <td><span id="p-refRecover"></span> kg</td>
-      <td class="lbl">冷媒充填量</td>
-      <td colspan="3"><span id="p-refFill"></span> kg</td>
+      <td class="lbl">冷媒<br>回収量</td>
+      <td class="val"><span id="p-refRecover"></span> kg</td>
+      <td class="lbl">冷媒<br>充填量</td>
+      <td class="val" colspan="3"><span id="p-refFill"></span> kg</td>
     </tr>
   </table>
 
   <!-- 作業日時 -->
-  <div class="work-date-row">
-    <span class="wlbl">作業日</span>
-    <span id="p-wy" class="uline"></span>年<span id="p-wm" class="uline"></span>月<span id="p-wd" class="uline"></span>日
+  <div class="date-row">
+    <span class="dl">作 業 日</span>
+    <span id="p-wy" class="ul"></span>年
+    <span id="p-wm" class="ul"></span>月
+    <span id="p-wd" class="ul"></span>日
     &nbsp;&nbsp;
-    <span class="wlbl">作業時間</span>
-    <span id="p-workStart" class="uline" style="min-width:48px"></span>〜<span id="p-workEnd" class="uline" style="min-width:48px"></span>
+    <span class="dl">作 業 時 間</span>
+    <span id="p-wstart" class="ul" style="min-width:44px"></span>
+    〜
+    <span id="p-wend" class="ul" style="min-width:44px"></span>
   </div>
 
   <!-- 発生状況 -->
-  <table class="sec-table">
+  <table class="sec-tbl">
     <tr>
-      <td class="rlbl" rowspan="2">発生状況</td>
-      <td class="slbl">症&nbsp;状</td>
-      <td class="cell" style="height:46px" id="p-symptom"></td>
+      <td class="vtit" rowspan="2">発&nbsp;生&nbsp;状&nbsp;況</td>
+      <td class="vsub">症&nbsp;&nbsp;状</td>
+      <td class="cell" id="p-symptom"></td>
     </tr>
     <tr>
-      <td class="slbl">原&nbsp;因</td>
-      <td class="cell" style="height:46px" id="p-cause"></td>
+      <td class="vsub">原&nbsp;&nbsp;因</td>
+      <td class="cell" id="p-cause"></td>
     </tr>
   </table>
 
   <!-- 作業内容 -->
-  <table class="sec-table">
+  <table class="sec-tbl">
     <tr>
-      <td class="rlbl" style="padding:10px 3px">作業内容</td>
-      <td class="cell" style="height:72px" id="p-workContent"></td>
+      <td class="vtit" style="padding:8px 3px">作&nbsp;業&nbsp;内&nbsp;容</td>
+      <td class="cell cell-lg" id="p-workContent"></td>
     </tr>
   </table>
 
   <!-- 備考 -->
-  <table class="sec-table">
+  <table class="sec-tbl">
     <tr>
-      <td class="rlbl">備考</td>
-      <td class="cell" style="height:32px" id="p-remarks"></td>
+      <td class="vtit">備&nbsp;&nbsp;考</td>
+      <td class="cell cell-sm" id="p-remarks"></td>
     </tr>
   </table>
 
   <!-- 運転データ -->
-  <table class="data-table">
+  <table class="data-tbl">
     <tr>
-      <th rowspan="2" class="rlbl" style="width:48px">運転データ</th>
+      <th rowspan="2" class="vtit">運&nbsp;転&nbsp;デ&nbsp;ー&nbsp;タ</th>
       <th>室内吸入温</th><th>室内吹出温</th><th>吐出圧力</th><th>吸入圧力</th><th>吐出温</th><th>吸入温</th><th>外気温</th><th>運転電流</th>
     </tr>
     <tr>
-      <td><span id="p-tii"></span><small>℃</small></td>
-      <td><span id="p-tio"></span><small>℃</small></td>
-      <td><span id="p-pd"></span><small>MPa</small></td>
-      <td><span id="p-ps"></span><small>MPa</small></td>
-      <td><span id="p-td"></span><small>℃</small></td>
-      <td><span id="p-ts"></span><small>℃</small></td>
-      <td><span id="p-to"></span><small>℃</small></td>
-      <td><span id="p-cur"></span><small>A</small></td>
+      <td><span id="d-tii"></span><small>℃</small></td>
+      <td><span id="d-tio"></span><small>℃</small></td>
+      <td><span id="d-pd"></span><small>MPa</small></td>
+      <td><span id="d-ps"></span><small>MPa</small></td>
+      <td><span id="d-td"></span><small>℃</small></td>
+      <td><span id="d-ts"></span><small>℃</small></td>
+      <td><span id="d-to"></span><small>℃</small></td>
+      <td><span id="d-cur"></span><small>A</small></td>
     </tr>
   </table>
 
   <!-- 使用部品 -->
-  <table class="parts-table">
+  <table class="parts-tbl">
     <tr>
-      <td class="rlbl" rowspan="5">使用部品</td>
-      <th style="width:38%">部　品　名</th><th style="width:9%">数量</th><th style="width:9%">単位</th><th>部　品　コ　ー　ド</th>
+      <td class="vtit" rowspan="5">使&nbsp;用&nbsp;部&nbsp;品</td>
+      <th style="width:36%">部　　品　　名</th>
+      <th style="width:9%">数量</th>
+      <th style="width:9%">単位</th>
+      <th>部　品　コ　ー　ド</th>
     </tr>
-    <tr><td id="n0"></td><td id="q0"></td><td id="u0"></td><td id="c0"></td></tr>
-    <tr><td id="n1"></td><td id="q1"></td><td id="u1"></td><td id="c1"></td></tr>
-    <tr><td id="n2"></td><td id="q2"></td><td id="u2"></td><td id="c2"></td></tr>
-    <tr><td id="n3"></td><td id="q3"></td><td id="u3"></td><td id="c3"></td></tr>
+    <tr><td id="pn0"></td><td id="pq0"></td><td id="pu0"></td><td id="pc0"></td></tr>
+    <tr><td id="pn1"></td><td id="pq1"></td><td id="pu1"></td><td id="pc1"></td></tr>
+    <tr><td id="pn2"></td><td id="pq2"></td><td id="pu2"></td><td id="pc2"></td></tr>
+    <tr><td id="pn3"></td><td id="pq3"></td><td id="pu3"></td><td id="pc3"></td></tr>
   </table>
 
   <!-- 作業確認 -->
-  <table class="confirm-table">
+  <table class="conf-tbl">
     <tr>
-      <td class="lbl" style="width:72px">作業確認</td>
+      <td class="lbl" style="width:68px">作&nbsp;業&nbsp;確&nbsp;認</td>
       <td>
         <div class="cbrow">
-          <div class="cbitem"><span class="cb" id="cb-完了"></span> 完了</div>
-          <div class="cbitem"><span class="cb" id="cb-未完了"></span> 未完了</div>
-          <div class="cbitem"><span class="cb" id="cb-見積書提出"></span> 見積書提出</div>
+          <div class="cbitem"><span class="cb" id="cb-完了"></span>&nbsp;完了</div>
+          <div class="cbitem"><span class="cb" id="cb-未完了"></span>&nbsp;未完了</div>
+          <div class="cbitem"><span class="cb" id="cb-見積書提出"></span>&nbsp;見積書提出</div>
         </div>
       </td>
-      <td class="lbl" style="width:52px">作業者</td>
-      <td id="p-worker" style="min-width:72px"></td>
-      <td class="lbl" style="width:52px">確認者</td>
-      <td id="p-confirmer" style="min-width:72px"></td>
-      <td class="lbl" style="width:20px; text-align:center">印</td>
-      <td style="width:52px"></td>
+      <td class="lbl" style="width:48px">作業者</td>
+      <td id="p-worker" style="min-width:64px"></td>
+      <td class="lbl" style="width:48px">確認者</td>
+      <td id="p-confirmer" style="min-width:64px"></td>
+      <td class="lbl" style="width:18px;text-align:center">印</td>
+      <td style="width:48px"></td>
     </tr>
   </table>
 
-  <!-- サイン -->
-  <!-- サイン欄 -->
-  <div class="sign-section">
-    <div class="sign-block" style="flex:1">
-      <div class="sign-label">お客様 ご署名欄</div>
-      <div id="sign-preview" style="height:60px;border:1px solid #ccc;background:#fafafa;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;" onclick="openSignModal()">
-        <img id="sign-img" src="" style="display:none;max-height:58px;max-width:100%;">
-        <span id="sign-placeholder" style="color:#bbb;font-size:12px;">タップしてサイン →</span>
+  <!-- お客様サイン -->
+  <div class="sign-row">
+    <div class="sign-block">
+      <div class="sign-lbl">お客様　ご署名欄</div>
+      <div class="sign-preview" onclick="openSignModal()">
+        <img id="sign-img" src="">
+        <span class="sign-placeholder" id="sign-ph">タップしてサイン ✏</span>
       </div>
-      <div style="text-align:right;margin-top:2px;">
+      <div class="sign-btns">
         <button class="sign-btn" onclick="openSignModal()">✏ サインする</button>
-        <button class="sign-btn" onclick="clearSign()" style="margin-left:4px;">クリア</button>
+        <button class="sign-btn" onclick="clearSign()">クリア</button>
       </div>
-    </div>
-  </div>
-
-  <!-- サインモーダル -->
-  <div id="sign-modal" style="display:none;position:fixed;inset:0;background:#000;z-index:9999;flex-direction:column;">
-    <div style="background:#0066cc;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="color:white;font-size:15px;font-weight:700;">ご署名をお願いします</span>
-      <button onclick="closeSignModal()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">キャンセル</button>
-    </div>
-    <div style="flex:1;position:relative;overflow:hidden;background:#fff;">
-      <canvas id="modal-sign-canvas" style="display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;"></canvas>
-      <div style="position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:12px;color:#bbb;pointer-events:none;">こちらにサインしてください</div>
-    </div>
-    <div style="background:#f0f4f8;padding:12px 16px;display:flex;gap:10px;">
-      <button onclick="clearModalSign()" style="flex:1;padding:12px;background:white;border:1.5px solid #d1dde8;border-radius:8px;font-size:14px;cursor:pointer;">クリア</button>
-      <button onclick="saveSign()" style="flex:2;padding:12px;background:#0066cc;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">✓ このサインで確定</button>
     </div>
   </div>
 
   <!-- フッター + QR -->
   <div class="footer-row">
-    <div class="footer-logo"><span class="s-logo">S</span>シオンテクノス株式会社</div>
-    <div class="qr-block">
-      <div class="qr-label">報告書をスマホで確認<br><span id="qr-url-text" style="font-size:7px;color:#aaa"></span></div>
+    <div class="footer-logo"><span class="slogo" style="width:16px;height:16px;font-size:10px">S</span>シオンテクノス株式会社</div>
+    <div class="qr-wrap">
+      <div class="qr-lbl">報告書をスマホで確認<br><span id="qr-url-text" style="font-size:7px;color:#aaa"></span></div>
       <div id="qr-code"></div>
     </div>
   </div>
 
 </div></div><!-- .report-page .page-wrap -->
 
+<!-- サインモーダル -->
+<div id="sign-modal">
+  <div class="sign-modal-header">
+    <span>ご署名をお願いします</span>
+    <button class="sign-modal-cancel" onclick="closeSignModal()">キャンセル</button>
+  </div>
+  <div style="flex:1;position:relative;overflow:hidden;">
+    <canvas id="modal-sign-canvas"></canvas>
+    <div style="position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:13px;color:#bbb;pointer-events:none;font-family:sans-serif;">こちらにサインしてください</div>
+  </div>
+  <div class="sign-modal-footer">
+    <button class="btn-clear" onclick="clearModalSign()">クリア</button>
+    <button class="btn-save-sign" onclick="saveSign()">✓ このサインで確定</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
 <script>
 // ===== データ読込 =====
-const params = new URLSearchParams(location.search);
-const data = JSON.parse(decodeURIComponent(params.get('data') || '{}'));
+const urlParams = new URLSearchParams(location.search);
+const data = JSON.parse(decodeURIComponent(urlParams.get('data') || '{}'));
 
 function set(id, val) {
   const el = document.getElementById(id);
-  if (el && val != null && val !== '' && val !== null) el.textContent = val;
+  if (el && val != null && val !== '') el.textContent = val;
 }
 
 set('p-customerName', data.customerName);
@@ -314,38 +373,40 @@ set('p-productType', data.productType);
 set('p-maker', data.maker);
 set('p-model', data.model);
 set('p-serial', data.serial);
-set('p-refrigerant', (data.refrigerant||'').replace(/^R-?/,''));
-set('p-refShip', data.refShip);
-set('p-refAdd', data.refAdd);
-set('p-refRecover', data.refRecover);
-set('p-refFill', data.refFill);
+set('p-refrigerant', (data.refrigerant||'').replace(/^R-?/i,''));
+set('p-refShip', data.refShip != null && data.refShip !== '' ? data.refShip : '');
+set('p-refAdd', data.refAdd != null && data.refAdd !== '' ? data.refAdd : '');
+set('p-refRecover', data.refRecover != null && data.refRecover !== '' ? data.refRecover : '');
+set('p-refFill', data.refFill != null && data.refFill !== '' ? data.refFill : '');
 
 if (data.workDate) {
   const d = new Date(data.workDate);
-  set('p-wy', d.getFullYear());
-  set('p-wm', d.getMonth()+1);
-  set('p-wd', d.getDate());
+  if (!isNaN(d)) {
+    set('p-wy', d.getFullYear());
+    set('p-wm', d.getMonth()+1);
+    set('p-wd', d.getDate());
+  }
 }
-set('p-workStart', data.workStart);
-set('p-workEnd', data.workEnd);
+set('p-wstart', data.workStart);
+set('p-wend', data.workEnd);
 set('p-symptom', data.symptom);
 set('p-cause', data.cause);
 set('p-workContent', data.workContent);
 set('p-remarks', data.remarks);
-set('p-tii', data.tempIndoorIn);
-set('p-tio', data.tempIndoorOut);
-set('p-pd', data.pressDischarge);
-set('p-ps', data.pressSuction);
-set('p-td', data.tempDischarge);
-set('p-ts', data.tempSuction);
-set('p-to', data.tempOutdoor);
-set('p-cur', data.current);
+set('d-tii', data.tempIndoorIn != null && data.tempIndoorIn !== '' ? data.tempIndoorIn : '');
+set('d-tio', data.tempIndoorOut != null && data.tempIndoorOut !== '' ? data.tempIndoorOut : '');
+set('d-pd', data.pressDischarge != null && data.pressDischarge !== '' ? data.pressDischarge : '');
+set('d-ps', data.pressSuction != null && data.pressSuction !== '' ? data.pressSuction : '');
+set('d-td', data.tempDischarge != null && data.tempDischarge !== '' ? data.tempDischarge : '');
+set('d-ts', data.tempSuction != null && data.tempSuction !== '' ? data.tempSuction : '');
+set('d-to', data.tempOutdoor != null && data.tempOutdoor !== '' ? data.tempOutdoor : '');
+set('d-cur', data.current != null && data.current !== '' ? data.current : '');
 
 (data.parts||[]).slice(0,4).forEach((p,i) => {
-  set('n'+i, p.name); set('q'+i, p.qty); set('u'+i, p.unit); set('c'+i, p.code);
+  set('pn'+i, p.name); set('pq'+i, p.qty); set('pu'+i, p.unit); set('pc'+i, p.code);
 });
 
-const cbEl = document.getElementById('cb-' + (data.status||''));
+const cbEl = document.getElementById('cb-'+(data.status||''));
 if (cbEl) cbEl.textContent = '✓';
 set('p-worker', data.worker);
 set('p-confirmer', data.confirmer);
@@ -356,47 +417,10 @@ const qrUrl = baseUrl + 'view.html?id=' + (data.id||'');
 document.getElementById('qr-url-text').textContent = qrUrl.replace('https://','');
 if (typeof QRCode !== 'undefined' && data.id) {
   new QRCode(document.getElementById('qr-code'), {
-    text: qrUrl, width: 68, height: 68,
+    text: qrUrl, width: 60, height: 60,
     colorDark: '#000', colorLight: '#fff',
     correctLevel: QRCode.CorrectLevel.M
   });
-}
-
-// ===== サインパッド =====
-function makePad(canvasId) {
-  const canvas = document.getElementById(canvasId);
-  const ctx = canvas.getContext('2d');
-  let drawing = false;
-
-  function resize() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.offsetWidth || canvas.parentElement.offsetWidth || 300;
-    const h = 60;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-  }
-
-  function pos(e) {
-    const r = canvas.getBoundingClientRect();
-    const t = e.touches ? e.touches[0] : e;
-    return { x: t.clientX - r.left, y: t.clientY - r.top };
-  }
-
-  canvas.addEventListener('mousedown', e => { drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
-  canvas.addEventListener('mousemove', e => { if(!drawing) return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); });
-  canvas.addEventListener('mouseup', () => drawing=false);
-  canvas.addEventListener('mouseleave', () => drawing=false);
-  canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
-  canvas.addEventListener('touchmove', e => { e.preventDefault(); if(!drawing) return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); });
-  canvas.addEventListener('touchend', () => drawing=false);
-  window.addEventListener('resize', resize);
-  resize();
-  return { clear: () => { resize(); } };
 }
 
 // ===== サインモーダル =====
@@ -404,78 +428,84 @@ const modalCanvas = document.getElementById('modal-sign-canvas');
 const modalCtx = modalCanvas.getContext('2d');
 let modalDrawing = false;
 
-function resizeModalCanvas() {
+function resizeModal() {
   const dpr = window.devicePixelRatio || 1;
   const w = modalCanvas.offsetWidth;
   const h = modalCanvas.offsetHeight;
   modalCanvas.width = w * dpr;
   modalCanvas.height = h * dpr;
   modalCtx.scale(dpr, dpr);
-  modalCtx.strokeStyle = '#000';
+  modalCtx.strokeStyle = '#111';
   modalCtx.lineWidth = 2.5;
   modalCtx.lineCap = 'round';
   modalCtx.lineJoin = 'round';
 }
 
-function getModalPos(e) {
-  const rect = modalCanvas.getBoundingClientRect();
+function mPos(e) {
+  const r = modalCanvas.getBoundingClientRect();
   const t = e.touches ? e.touches[0] : e;
-  return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  return { x: t.clientX - r.left, y: t.clientY - r.top };
 }
 
-modalCanvas.addEventListener('mousedown', e => { modalDrawing=true; const p=getModalPos(e); modalCtx.beginPath(); modalCtx.moveTo(p.x,p.y); });
-modalCanvas.addEventListener('mousemove', e => { if(!modalDrawing) return; const p=getModalPos(e); modalCtx.lineTo(p.x,p.y); modalCtx.stroke(); });
+modalCanvas.addEventListener('mousedown', e => { modalDrawing=true; const p=mPos(e); modalCtx.beginPath(); modalCtx.moveTo(p.x,p.y); });
+modalCanvas.addEventListener('mousemove', e => { if(!modalDrawing) return; const p=mPos(e); modalCtx.lineTo(p.x,p.y); modalCtx.stroke(); });
 modalCanvas.addEventListener('mouseup', () => modalDrawing=false);
-modalCanvas.addEventListener('touchstart', e => { e.preventDefault(); modalDrawing=true; const p=getModalPos(e); modalCtx.beginPath(); modalCtx.moveTo(p.x,p.y); });
-modalCanvas.addEventListener('touchmove', e => { e.preventDefault(); if(!modalDrawing) return; const p=getModalPos(e); modalCtx.lineTo(p.x,p.y); modalCtx.stroke(); });
+modalCanvas.addEventListener('mouseleave', () => modalDrawing=false);
+modalCanvas.addEventListener('touchstart', e => { e.preventDefault(); modalDrawing=true; const p=mPos(e); modalCtx.beginPath(); modalCtx.moveTo(p.x,p.y); });
+modalCanvas.addEventListener('touchmove', e => { e.preventDefault(); if(!modalDrawing) return; const p=mPos(e); modalCtx.lineTo(p.x,p.y); modalCtx.stroke(); });
 modalCanvas.addEventListener('touchend', () => modalDrawing=false);
 
 window.openSignModal = function() {
   const modal = document.getElementById('sign-modal');
   modal.style.display = 'flex';
-  // モーダルが開いたあとにcanvasサイズを確定
-  setTimeout(() => {
-    resizeModalCanvas();
-    // 既存サインがあれば描画
-    const img = document.getElementById('sign-img');
-    if (img.src && img.style.display !== 'none') {
-      const i = new Image();
-      i.onload = () => modalCtx.drawImage(i, 0, 0, modalCanvas.offsetWidth, modalCanvas.offsetHeight);
-      i.src = img.src;
-    }
-  }, 50);
+  setTimeout(resizeModal, 60);
 };
-
 window.closeSignModal = function() {
   document.getElementById('sign-modal').style.display = 'none';
 };
-
 window.clearModalSign = function() {
   modalCtx.clearRect(0, 0, modalCanvas.width, modalCanvas.height);
 };
-
 window.saveSign = function() {
-  // 空かどうかチェック
-  const data = modalCtx.getImageData(0, 0, modalCanvas.width, modalCanvas.height).data;
-  const isEmpty = !data.some((v, i) => i % 4 === 3 && v > 0);
-  if (isEmpty) {
-    alert('サインを入力してください');
-    return;
-  }
-  // canvasをDataURLに変換してプレビューに表示
+  const pixels = modalCtx.getImageData(0, 0, modalCanvas.width, modalCanvas.height).data;
+  if (!pixels.some((v,i) => i%4===3 && v>0)) { alert('サインを入力してください'); return; }
   const dataUrl = modalCanvas.toDataURL('image/png');
   const img = document.getElementById('sign-img');
   img.src = dataUrl;
   img.style.display = 'block';
-  document.getElementById('sign-placeholder').style.display = 'none';
+  document.getElementById('sign-ph').style.display = 'none';
   closeSignModal();
 };
-
 window.clearSign = function() {
-  document.getElementById('sign-img').src = '';
-  document.getElementById('sign-img').style.display = 'none';
-  document.getElementById('sign-placeholder').style.display = '';
+  const img = document.getElementById('sign-img');
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('sign-ph').style.display = '';
   modalCtx.clearRect(0, 0, modalCanvas.width, modalCanvas.height);
+};
+
+// ===== GASへ保存（サイン付き）=====
+window.saveToGas = async function() {
+  if (!data.id) { alert('報告書IDがありません'); return; }
+  const img = document.getElementById('sign-img');
+  const signData = img.src && img.style.display !== 'none' ? img.src : '';
+
+  const saveData = { ...data, customerSign: signData };
+  try {
+    const params = new URLSearchParams({
+      action: 'update',
+      id: data.id,
+      data: encodeURIComponent(JSON.stringify(saveData))
+    });
+    const res = await fetch(GAS_URL + '?' + params.toString(), { redirect: 'follow' });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      alert('✓ 保存しました');
+    } else {
+      alert('保存失敗: ' + (json.data?.message || '不明'));
+    }
+  } catch(e) {
+    alert('保存失敗: ' + e.message);
+  }
 };
 </script>
 </body>

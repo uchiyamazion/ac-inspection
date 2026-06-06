@@ -67,11 +67,9 @@ body { font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; backg
   <div>札幌市東区北24条東4丁目1-1　TEL 011-751-8686</div>
 </div>
 
+<script src="js/config.js"></script>
 <script>
-// GAS_URLはprint.htmlと同じものを設定（app.jsから読めないのでここに直書き）
-// ★ デプロイ後にこのURLを更新してください
-// GAS_URLはjs/config.jsで設定
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbymy6FDAsnFY-r24BNs5AlzJNBNOskCVe8D8x1ygT4As6plCkpq1rwvWZ1xR2HYSpM1Hg/exec';
+// GAS_URLはjs/config.jsから読み込み
 
 const params = new URLSearchParams(location.search);
 const reportId = params.get('id');

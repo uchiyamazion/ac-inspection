@@ -81,9 +81,18 @@ function rowToObj(headers, row) {
   const obj = {};
   headers.forEach((h, i) => {
     const val = row[i];
-    obj[h] = val instanceof Date
-      ? Utilities.formatDate(val, 'Asia/Tokyo', 'yyyy-MM-dd')
-      : val;
+    if (val instanceof Date) {
+      // 時刻列（workStart/workEnd）は HH:mm、日付列は yyyy-MM-dd
+      if (h === 'workStart' || h === 'workEnd') {
+        obj[h] = Utilities.formatDate(val, 'Asia/Tokyo', 'HH:mm');
+        // 00:00 は未入力扱い
+        if (obj[h] === '00:00') obj[h] = '';
+      } else {
+        obj[h] = Utilities.formatDate(val, 'Asia/Tokyo', 'yyyy-MM-dd');
+      }
+    } else {
+      obj[h] = val;
+    }
   });
   if (obj.parts && typeof obj.parts === 'string') {
     try { obj.parts = JSON.parse(obj.parts); } catch(e) { obj.parts = []; }

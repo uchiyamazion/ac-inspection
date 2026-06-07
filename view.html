@@ -166,6 +166,7 @@ function render(r) {
         <div class="field"><div class="field-label">ステータス</div><span class="badge badge-${esc(r.status)}">${esc(r.status||'—')}</span></div>
         ${field('作業者', r.worker)}
       </div>
+      ${r.customerSign ? '<div class="field" style="margin-top:10px"><div class="field-label">お客様サイン</div><img src="' + esc(r.customerSign) + '" style="max-width:100%;max-height:80px;border:1px solid #e8f0f7;border-radius:6px;padding:4px;background:#fafafa;"></div>' : ''}
     </div>
   `;
 }

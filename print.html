@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=794, initial-scale=0.45, maximum-scale=2.0, user-scalable=yes">
 <title>空調機器 点検・作業報告書</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
@@ -122,6 +122,12 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 .sm-cl { background: #fff; border: 1.5px solid #ccc !important; color: #333; }
 .sm-ok { background: #0d47a1; color: #fff; flex: 2; }
 
+@media screen and (max-width: 600px) {
+  .page-wrap { margin: 0; box-shadow: none; }
+  .ctrl-bar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
+  .cb { padding: 6px 12px; font-size: 12px; }
+  .ctrl-note { font-size: 10px; width: 100%; margin-left: 0; }
+}
 @media print {
   body { background: #fff; }
   .ctrl-bar { display: none !important; }

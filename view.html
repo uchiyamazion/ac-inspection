@@ -62,7 +62,7 @@ body { font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; backg
     <div class="title">シオンテクノス株式会社</div>
     <div class="sub">点検・作業報告書</div>
   </div>
-  <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:white;padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;">🖨 PDF保存</button>
+  <button onclick="openPrintPage()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:white;padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;">🖨 帳票PDF</button>
 </div>
 
 <div class="container" id="content">
@@ -171,6 +171,17 @@ function render(r) {
 }
 
 // GASからfetchで取得
+// 帳票ページを開く
+function openPrintPage() {
+  if (!reportId || !window._reportData) {
+    alert('報告書データを読み込み中です。しばらくお待ちください。');
+    return;
+  }
+  const url = location.origin + location.pathname.replace('view.html','') +
+    'print.html?data=' + encodeURIComponent(JSON.stringify(window._reportData));
+  window.open(url, '_blank');
+}
+
 async function loadReport() {
   if (!reportId) {
     document.getElementById('content').innerHTML = '<div class="not-found"><div class="icon">❌</div><p>報告書IDが指定されていません</p></div>';
@@ -184,6 +195,7 @@ async function loadReport() {
       document.getElementById('content').innerHTML = '<div class="not-found"><div class="icon">❌</div><p>報告書が見つかりません</p></div>';
       return;
     }
+    window._reportData = json.data;
     render(json.data);
   } catch(e) {
     document.getElementById('content').innerHTML = '<div class="not-found"><div class="icon">⚠️</div><p>読み込みに失敗しました</p></div>';

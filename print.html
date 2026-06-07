@@ -479,11 +479,45 @@ window.clearSignData=function(){
   mx.clearRect(0,0,mc.width,mc.height);
   try{localStorage.removeItem('sign_'+data.id);}catch(e){}
 };
-window.saveSign=function(){
-  const img=document.getElementById('sign-img');
-  if(!img.src||img.style.display==='none'){alert('先にサインしてください');return;}
-  try{localStorage.setItem('sign_'+data.id,img.src);alert('✓ 保存しました\nそのまま印刷・PDF保存してください');}
-  catch(e){alert('✓ サインが入力されています\nそのまま印刷してください');}
+window.saveSign = async function() {
+  const img = document.getElementById('sign-img');
+  if (!img.src || img.style.display === 'none') {
+    alert('先にサインしてください');
+    return;
+  }
+  if (!data.id) {
+    alert('報告書IDがありません');
+    return;
+  }
+  const btn = document.querySelector('.cb-s');
+  btn.textContent = '保存中…';
+  btn.disabled = true;
+  try {
+    // まずローカルに保存（バックアップ）
+    try { localStorage.setItem('sign_' + data.id, img.src); } catch(e) {}
+
+    // Google Driveに保存
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'saveSign',
+        id: data.id,
+        signData: img.src
+      })
+    });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      alert('✓ サインをGoogle Driveに保存しました！\nそのまま印刷・PDF保存してください。');
+    } else {
+      // GASエラーでもローカル保存済みなので印刷は可能
+      alert('✓ サインを保存しました（ローカル）\nそのまま印刷してください。');
+    }
+  } catch(e) {
+    alert('✓ サインが入力されています\nそのまま印刷してください。');
+  } finally {
+    btn.textContent = '💾 サインを保存';
+    btn.disabled = false;
+  }
 };
 </script>
 </body>

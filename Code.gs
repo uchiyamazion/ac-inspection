@@ -26,12 +26,66 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     const action = body.action;
+    if (action === 'saveSign') return makeRes(saveSignImage(body.id, body.signData));
     if (action === 'update') return makeRes(updateRecord(body.id, body.data));
     if (action === 'create') return makeRes(createRecord(body.data));
     if (action === 'delete') return makeRes(deleteRecord(body.id));
     return makeRes({ message: '不明なaction' }, 'error');
   } catch (err) {
     return makeRes({ message: err.message }, 'error');
+  }
+}
+
+// ===== Google Driveにサイン画像を保存 =====
+function saveSignImage(reportId, base64Data) {
+  // Base64からバイナリに変換
+  const base64 = base64Data.replace(/^data:image\/png;base64,/, '');
+  const blob = Utilities.newBlob(
+    Utilities.base64Decode(base64),
+    'image/png',
+    'sign_' + reportId + '.png'
+  );
+
+  // 保存先フォルダ（なければ作成）
+  const folderName = '点検報告_サイン';
+  let folder;
+  const folders = DriveApp.getFoldersByName(folderName);
+  if (folders.hasNext()) {
+    folder = folders.next();
+  } else {
+    folder = DriveApp.createFolder(folderName);
+  }
+
+  // 既存ファイルがあれば削除
+  const existing = folder.getFilesByName('sign_' + reportId + '.png');
+  while (existing.hasNext()) {
+    existing.next().setTrashed(true);
+  }
+
+  // 新規保存・共有設定
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  const fileId = file.getId();
+  const imageUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
+
+  // スプレッドシートのcustomerSign列を更新
+  updateSignUrl(reportId, imageUrl);
+
+  return { imageUrl, fileId };
+}
+
+function updateSignUrl(reportId, imageUrl) {
+  const sheet = getSheet();
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+  const idCol = headers.indexOf('id');
+  const signCol = headers.indexOf('customerSign');
+  if (signCol === -1) return;
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][idCol] === reportId) {
+      sheet.getRange(i + 1, signCol + 1).setValue(imageUrl);
+      return;
+    }
   }
 }
 

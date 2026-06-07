@@ -479,44 +479,60 @@ window.clearSignData=function(){
   mx.clearRect(0,0,mc.width,mc.height);
   try{localStorage.removeItem('sign_'+data.id);}catch(e){}
 };
+// サイン画像を圧縮してBase64を小さくする
+function compressSign(srcDataUrl, maxW, maxH, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = srcDataUrl;
+  });
+}
+
 window.saveSign = async function() {
   const img = document.getElementById('sign-img');
   if (!img.src || img.style.display === 'none') {
-    alert('先にサインしてください');
-    return;
+    alert('先にサインしてください'); return;
   }
-  if (!data.id) {
-    alert('報告書IDがありません');
-    return;
-  }
+  if (!data.id) { alert('報告書IDがありません'); return; }
+
   const btn = document.querySelector('.cb-s');
-  btn.textContent = '保存中…';
-  btn.disabled = true;
+  btn.textContent = '保存中…'; btn.disabled = true;
+
   try {
-    // まずローカルに保存（バックアップ）
+    // ローカルにオリジナルを保存
     try { localStorage.setItem('sign_' + data.id, img.src); } catch(e) {}
 
-    // Google Driveに保存
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'saveSign',
-        id: data.id,
-        signData: img.src
-      })
-    });
+    // 300x100px・JPEG quality0.7に圧縮（約5-10KB）
+    const compressed = await compressSign(img.src, 300, 100, 0.7);
+    const base64only = compressed.replace(/^data:image\/jpeg;base64,/, '');
+
+    // GETで送信（URLパラメータ）
+    const url = GAS_URL + '?action=saveSign&id=' + encodeURIComponent(data.id)
+              + '&signData=' + encodeURIComponent(base64only);
+
+    const res = await fetch(url, { redirect: 'follow' });
     const json = await res.json();
+
     if (json.status === 'ok') {
-      alert('✓ サインをGoogle Driveに保存しました！\nそのまま印刷・PDF保存してください。');
+      alert('✓ サインをGoogle Driveに保存しました！\nQRコードからもサインが確認できます。');
     } else {
-      // GASエラーでもローカル保存済みなので印刷は可能
-      alert('✓ サインを保存しました（ローカル）\nそのまま印刷してください。');
+      alert('保存失敗: ' + (json.data?.message || '不明') + '\n印刷はそのままできます。');
     }
   } catch(e) {
-    alert('✓ サインが入力されています\nそのまま印刷してください。');
+    alert('✓ ローカルに保存しました\nそのまま印刷してください。\n(' + e.message + ')');
   } finally {
-    btn.textContent = '💾 サインを保存';
-    btn.disabled = false;
+    btn.textContent = '💾 サインを保存'; btn.disabled = false;
   }
 };
 </script>

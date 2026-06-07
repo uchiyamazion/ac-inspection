@@ -149,12 +149,31 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
   .ctrl-note { font-size: 10px; width: 100%; margin-left: 0; }
 }
 @media print {
-  body { background: #fff; }
+  html, body { background: #fff; height: 100%; }
   .ctrl-bar { display: none !important; }
-  .page-wrap { box-shadow: none; margin: 0; }
+  .page-wrap { box-shadow: none; margin: 0; width: 100%; }
+  .rp { padding: 8mm 10mm; }
   .sign-btns, .sign-btn { display: none !important; }
   #sign-modal { display: none !important; }
-  @page { margin: 10mm; size: A4; }
+  /* 全要素を1ページに強制収容 */
+  .title-area { margin-bottom: 4px; }
+  .cust-tbl { margin-bottom: 3px; }
+  .info { margin-bottom: 2px; }
+  .dr { margin: 2px 0 3px; }
+  .sec { margin-bottom: 2px; }
+  .sec .cell { min-height: 28px; }
+  .sec .cell-lg { min-height: 44px; }
+  .sec .cell-sm { min-height: 16px; }
+  .dt { margin-bottom: 2px; }
+  .pt { margin-bottom: 2px; }
+  .pt td { height: 13px; }
+  .conf { margin-bottom: 3px; }
+  .sign-area { height: 30px; }
+  .footer { margin-top: 3px; padding-top: 3px; }
+  /* 改ページ禁止 */
+  * { page-break-inside: avoid; }
+  table { page-break-inside: avoid; }
+  @page { margin: 8mm; size: A4 portrait; }
 }
 </style>
 </head>

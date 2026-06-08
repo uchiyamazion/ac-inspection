@@ -37,13 +37,16 @@ function doPost(e) {
 }
 
 // ===== Google Driveにサイン画像を保存 =====
-function saveSignImage(reportId, base64Data) {
+function saveSignImage(reportId, base64Data, imgType) {
   // Base64からバイナリに変換
-  const base64 = base64Data.replace(/^data:image\/png;base64,/, '');
+  imgType = imgType || 'png';
+  const mimeType = imgType === 'jpeg' ? 'image/jpeg' : 'image/png';
+  const ext = imgType === 'jpeg' ? 'jpg' : 'png';
+  const base64 = base64Data.replace(/^data:image\/(png|jpeg);base64,/, '');
   const blob = Utilities.newBlob(
     Utilities.base64Decode(base64),
-    'image/png',
-    'sign_' + reportId + '.png'
+    mimeType,
+    'sign_' + reportId + '.' + ext
   );
 
   // 保存先フォルダ（なければ作成）
@@ -57,7 +60,8 @@ function saveSignImage(reportId, base64Data) {
   }
 
   // 既存ファイルがあれば削除
-  const existing = folder.getFilesByName('sign_' + reportId + '.png');
+  const existing = folder.getFilesByName('sign_' + reportId + '.' + ext);
+  folder.getFilesByName('sign_' + reportId + '.png').hasNext() && (() => { const f2 = folder.getFilesByName('sign_' + reportId + '.png'); while(f2.hasNext()) f2.next().setTrashed(true); })();
   while (existing.hasNext()) {
     existing.next().setTrashed(true);
   }
@@ -66,7 +70,8 @@ function saveSignImage(reportId, base64Data) {
   const file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   const fileId = file.getId();
-  const imageUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
+  // スマホ・外部ブラウザでも表示できるよう公開URLを設定
+  const imageUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
 
   // スプレッドシートのcustomerSign列を更新
   updateSignUrl(reportId, imageUrl);
@@ -96,6 +101,7 @@ function doGet(e) {
     const action = p.action || 'list';
     if (action === 'list')   return makeRes(listRecords());
     if (action === 'get')    return makeRes(getRecord(p.id));
+    if (action === 'saveSign') return makeRes(saveSignImage(p.id, p.signData, 'jpeg'));
     if (action === 'create') return makeRes(createRecord(JSON.parse(decodeURIComponent(p.data))));
     if (action === 'update') return makeRes(updateRecord(p.id, JSON.parse(decodeURIComponent(p.data))));
     if (action === 'delete') return makeRes(deleteRecord(p.id));

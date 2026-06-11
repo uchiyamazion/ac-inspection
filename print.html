@@ -60,7 +60,7 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 
 /* 情報テーブル */
 .info { width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 10px; }
-.info td { border: 1px solid #000; padding: 2px 4px; vertical-align: middle; }
+.info td { border: 1px solid #000; padding: 2px 4px; vertical-align: middle; font-size: 10px; }
 .info .lbl { background: #e3f2fd; font-weight: bold; text-align: center; white-space: nowrap; }
 
 /* 作業日 */
@@ -74,7 +74,7 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 .sec .vs { background: #e3f2fd; font-weight: bold; text-align: center; writing-mode: vertical-rl; white-space: nowrap; padding: 4px 3px; width: 28px; }
 .sec .cell { white-space: pre-wrap; line-height: 1.5; min-height: 36px; }
 .sec .cell-lg { min-height: 60px; }
-.sec .cell-sm { min-height: 22px; }
+.sec .cell-sm { min-height: 18px; }
 
 /* 運転データ */
 .dt { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 9px; }
@@ -270,10 +270,10 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
   </table>
 
   <!-- 備考 -->
-  <table class="sec">
+  <table class="sec" style="margin-bottom:4px;">
     <tr>
-      <td class="vt">備&nbsp;&nbsp;考</td>
-      <td class="cell cell-sm" id="p-remarks"></td>
+      <td class="vt" style="padding:4px 3px;">備&nbsp;&nbsp;考</td>
+      <td class="cell" style="min-height:20px;" id="p-remarks"></td>
     </tr>
   </table>
 

@@ -1,0 +1,138 @@
+
+/* ============================================================
+   お客様サイン欄（入力フォーム）
+   ============================================================ */
+.sign-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-sub, #5a7a94);
+}
+
+.sign-input-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sign-canvas-area {
+  flex: 1;
+  min-width: 200px;
+  height: 70px;
+  border: 1.5px dashed var(--border, #d1dde8);
+  background: var(--bg, #f7fafc);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+.sign-canvas-area:hover {
+  border-color: var(--primary, #0066cc);
+  background: var(--primary-light, #e6f0fb);
+}
+.sign-canvas-area img {
+  max-height: 64px;
+  max-width: 100%;
+  display: none;
+  filter: contrast(1.6) brightness(0.85);
+}
+.sign-ph-text {
+  font-size: 13px;
+  color: #8fa5b8;
+  font-weight: 500;
+}
+
+.sign-input-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+/* ===== サインパッドモーダル（全画面） ===== */
+.sign-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: #000;
+  z-index: 9999;
+  flex-direction: column;
+}
+.sign-modal-overlay.open { display: flex; }
+
+.sign-modal-header {
+  background: var(--primary, #0066cc);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.sign-modal-header span {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+}
+.sign-modal-header button {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sign-modal-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+}
+#sign-pad-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+.sign-modal-guide {
+  position: absolute;
+  bottom: 14px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 13px;
+  color: #bbb;
+  pointer-events: none;
+}
+
+.sign-modal-footer {
+  background: #eceff1;
+  padding: 14px 18px;
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.sign-modal-footer button {
+  flex: 1;
+  padding: 15px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sign-modal-clear {
+  background: #fff;
+  border: 1.5px solid #ccc;
+  color: #333;
+}
+.sign-modal-confirm {
+  background: var(--primary, #0066cc);
+  color: #fff;
+  flex: 2;
+}

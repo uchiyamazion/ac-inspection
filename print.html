@@ -2,12 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=794, initial-scale=0.45, maximum-scale=2.0, user-scalable=yes">
+<meta name="viewport" content="width=820, initial-scale=0.45, maximum-scale=2.0, user-scalable=yes">
 <title>空調機器 点検・作業報告書</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size: 10.5px; background: #888; color: #000; }
+body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size: 11px; background: #999; color: #000; }
 
 .ctrl-bar {
   background: #0d47a1; padding: 9px 16px;
@@ -20,134 +20,116 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 .cb-c { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; }
 .ctrl-note { font-size: 11px; color: rgba(255,255,255,0.65); margin-left: 6px; }
 
-.page-wrap { max-width: 794px; margin: 14px auto 40px; background: #fff; box-shadow: 0 3px 20px rgba(0,0,0,0.35); }
-.rp { padding: 16px 20px 16px; }
-
-/* タイトル行：左に会社情報ブロック、中央にタイトル、右に会社ボックス */
-.title-area { display: flex; align-items: stretch; margin-bottom: 8px; gap: 0; }
-
-.company-left {
-  min-width: 180px; display: flex; flex-direction: column;
-  justify-content: center; padding-right: 10px;
-}
-.company-left .comp-name { font-size: 10px; font-weight: bold; margin-bottom: 3px; }
-.company-left .comp-row { font-size: 8px; line-height: 1.7; color: #333; }
-.company-left .comp-row span { font-weight: bold; display: inline-block; min-width: 44px; }
-
-.title-center {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  border: 2px solid #29b6f6;
-  padding: 6px 0;
-}
-.title-center h1 { font-size: 17px; font-weight: bold; letter-spacing: 0.2em; white-space: nowrap; }
-
-.company-right {
-  min-width: 180px; border: 2px solid #29b6f6;
-  border-left: none; padding: 5px 7px;
-  font-size: 8px; line-height: 1.7;
-  display: flex; flex-direction: column; justify-content: center;
-}
-.company-right .cr-name { font-size: 10px; font-weight: bold; margin-bottom: 2px; }
-.company-right .cr-row { display: flex; }
-.company-right .cr-row .cl { min-width: 52px; font-weight: bold; }
-
-/* 顧客情報 */
-.cust-tbl { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 10.5px; }
-.cust-tbl td { padding: 2px 4px; }
-.cust-tbl .cl { color: #000; white-space: nowrap; width: 56px; }
-.cust-tbl .cv { border-bottom: 1px solid #000; font-size: 12px; font-weight: bold; }
-.cust-tbl .cs { width: 14px; font-size: 10px; }
-
-/* 情報テーブル */
-.info { width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 10px; }
-.info td { border: 1px solid #000; padding: 2px 4px; vertical-align: middle; font-size: 10px; }
-.info .lbl { background: #e3f2fd; font-weight: bold; text-align: center; white-space: nowrap; }
-
-/* 作業日 */
-.dr { display: flex; align-items: center; gap: 6px; font-size: 10.5px; margin: 3px 0 4px; font-weight: bold; }
-.ul { border-bottom: 1px solid #000; min-width: 28px; display: inline-block; text-align: center; padding: 0 2px; font-weight: normal; }
-
-/* セクション */
-.sec { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 10px; }
-.sec td { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
-.sec .vt { background: #e3f2fd; font-weight: bold; text-align: center; writing-mode: vertical-rl; white-space: nowrap; padding: 5px 3px; width: 18px; }
-.sec .vs { background: #e3f2fd; font-weight: bold; text-align: center; writing-mode: vertical-rl; white-space: nowrap; padding: 4px 3px; width: 28px; }
-.sec .cell { white-space: pre-wrap; line-height: 1.5; min-height: 36px; }
-.sec .cell-lg { min-height: 60px; }
-.sec .cell-sm { min-height: 18px; }
-
-/* 運転データ */
-.dt { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 9px; }
-.dt th { border: 1px solid #000; padding: 2px; background: #e3f2fd; text-align: center; font-weight: bold; white-space: nowrap; }
-.dt td { border: 1px solid #000; padding: 2px 2px; text-align: center; height: 20px; }
-.dt .vt { background: #e3f2fd; font-weight: bold; writing-mode: vertical-rl; padding: 3px 2px; width: 40px; font-size: 8.5px; }
-
-/* 部品 */
-.pt { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 10px; }
-.pt th { border: 1px solid #000; padding: 2px 4px; background: #e3f2fd; text-align: center; font-weight: bold; }
-.pt td { border: 1px solid #000; padding: 2px 4px; height: 16px; }
-.pt .vt { background: #e3f2fd; font-weight: bold; text-align: center; writing-mode: vertical-rl; width: 18px; font-size: 9px; }
-
-/* 確認行 */
-.conf { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 10px; }
-.conf td { border: 1px solid #000; padding: 2px 5px; vertical-align: middle; }
-.conf .lbl { background: #e3f2fd; font-weight: bold; text-align: center; white-space: nowrap; }
-.cbrow { display: flex; gap: 10px; align-items: center; }
-.cbitem { display: flex; align-items: center; gap: 2px; }
-.cb2 { width: 10px; height: 10px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 10px; font-size: 9px; }
-
-/* サイン欄 */
-.sign-area { height: 40px; border: 1.5px dashed #78909c; background: #f5f8ff; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
-.sign-area img { max-height: 34px; max-width: 100%; display: none; }
-.sign-area .sp { font-size: 10px; color: #888; font-weight: bold; }
-.sign-btns { display: flex; gap: 3px; margin-top: 2px; justify-content: flex-end; }
-.sign-btn { font-size: 9px; border: 1px solid #ccc; background: #f5f5f5; padding: 1px 7px; cursor: pointer; border-radius: 2px; }
-
-/* フッター */
-.footer { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; padding-top: 4px; border-top: 1px solid #29b6f6; }
-.footer-logo { display: flex; align-items: center; }
-.footer-logo img { height: 22px; }
-.qr-wrap { display: flex; align-items: center; gap: 6px; }
-.qr-lbl { font-size: 8px; color: #666; text-align: right; line-height: 1.5; }
-#qr-code img, #qr-code canvas { width: 72px !important; height: 72px !important; }
-
-/* サインモーダル — viewportリセットして実寸表示 */
-#sign-modal {
-  display: none; position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background: #000; z-index: 9999; flex-direction: column;
-  /* スケール無効化：親のscaleに影響されず実寸表示 */
-  transform: none !important;
-}
-.smh {
-  background: #0d47a1; padding: 16px 20px;
-  display: flex; align-items: center; justify-content: space-between;
-  flex-shrink: 0;
-}
-.smh span { color: #fff; font-size: 18px; font-weight: 700; font-family: sans-serif; }
-.smh button {
-  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
-  color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 15px; cursor: pointer;
-}
-#mc { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; background: #fff; }
-.smf {
-  background: #eceff1; padding: 14px 20px; display: flex; gap: 10px;
-  flex-shrink: 0;
-}
-.smf button {
-  flex: 1; padding: 16px; border: none; border-radius: 10px;
-  font-size: 16px; font-weight: 700; cursor: pointer; font-family: sans-serif;
-}
-.sm-cl { background: #fff; border: 1.5px solid #ccc !important; color: #333; }
-.sm-ok { background: #0d47a1; color: #fff; flex: 2; }
-
 @media screen and (max-width: 600px) {
   .page-wrap { margin: 0; box-shadow: none; }
   .ctrl-bar { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
   .cb { padding: 6px 12px; font-size: 12px; }
   .ctrl-note { font-size: 10px; width: 100%; margin-left: 0; }
 }
+
+.page-wrap { max-width: 820px; margin: 14px auto 40px; background: #fff; box-shadow: 0 3px 20px rgba(0,0,0,0.35); }
+.rp { padding: 22px 26px 20px; position: relative; }
+
+.page-tag { position: absolute; top: 10px; right: 14px; font-size: 9px; letter-spacing: 0.2em; color: #555; }
+
+.title-wrap { text-align: center; margin-bottom: 16px; margin-top: 6px; }
+.title-wrap h1 {
+  display: inline-block; font-size: 20px; font-weight: bold; letter-spacing: 0.3em;
+  border: 2px solid #4fc3f7; padding: 6px 28px; color: #000;
+}
+
+.top-area { display: flex; gap: 16px; margin-bottom: 14px; }
+.cust-col { flex: 1.5; display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+.cust-row { display: flex; align-items: baseline; gap: 6px; }
+.cust-row .clabel { font-size: 12px; letter-spacing: 0.15em; white-space: nowrap; min-width: 70px; }
+.cust-row .cline { flex: 1; border-bottom: 1.5px solid #4fc3f7; min-height: 18px; font-size: 13px; font-weight: bold; padding: 0 4px 2px; }
+.cust-row .csama { font-size: 13px; white-space: nowrap; }
+
+.comp-box { flex: 1; border: 2px solid #4fc3f7; padding: 8px 12px; font-size: 9px; line-height: 1.7; }
+.comp-name { font-size: 14px; font-weight: bold; color: #0066cc; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+.comp-name .clogo { width: 16px; height: 16px; border-radius: 50%; background: #0066cc; color: #fff; display:flex; align-items:center; justify-content:center; font-size: 10px; font-weight: 900; }
+.comp-row { display: flex; gap: 3px; }
+.comp-row .lbl { font-weight: bold; white-space: nowrap; min-width: 70px; }
+
+.main-tbl { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
+.main-tbl td { border: 1px solid #4fc3f7; padding: 4px 8px; vertical-align: middle; }
+.main-tbl .lbl {
+  background: #ddf4fc; font-weight: bold; text-align: center;
+  white-space: nowrap; width: 90px;
+}
+.main-tbl .unit { font-size: 10px; color: #555; }
+
+.date-row { display: flex; align-items: baseline; gap: 8px; font-size: 12px; margin-bottom: 10px; }
+.date-row .dlabel { font-weight: bold; min-width: 56px; }
+.date-uline { border-bottom: 1px solid #000; min-width: 32px; display: inline-block; text-align: center; padding: 0 4px; }
+
+.body-tbl { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
+.body-tbl td { border: 1px solid #4fc3f7; padding: 4px 8px; vertical-align: top; }
+.body-tbl .vlabel {
+  background: #ddf4fc; font-weight: bold; text-align: center;
+  writing-mode: vertical-rl; white-space: nowrap; width: 26px;
+}
+.body-tbl .vsub {
+  background: #ddf4fc; font-weight: bold; text-align: center;
+  writing-mode: vertical-rl; white-space: nowrap; width: 36px;
+}
+.body-tbl .cell { white-space: pre-wrap; line-height: 1.6; }
+.body-tbl .symptom-cell { height: 32px; }
+.body-tbl .work-cell { height: 100px; }
+.body-tbl .remarks-cell { height: 36px; }
+
+.data-tbl { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+.data-tbl th { border: 1px solid #4fc3f7; padding: 4px 3px; background: #ddf4fc; text-align: center; font-weight: bold; white-space: nowrap; }
+.data-tbl td { border: 1px solid #4fc3f7; padding: 4px 3px; text-align: center; height: 24px; }
+.data-tbl .vlabel { background: #ddf4fc; font-weight: bold; writing-mode: vertical-rl; padding: 4px 3px; width: 44px; font-size: 9.5px; letter-spacing: 0.1em; }
+
+.parts-tbl { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
+.parts-tbl th { border: 1px solid #4fc3f7; padding: 4px 8px; background: #ddf4fc; text-align: center; font-weight: bold; }
+.parts-tbl td { border: 1px solid #4fc3f7; padding: 4px 8px; height: 22px; }
+.parts-tbl .vlabel { background: #ddf4fc; font-weight: bold; text-align: center; writing-mode: vertical-rl; width: 26px; font-size: 10px; }
+
+.conf-area { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.conf-tbl { border-collapse: collapse; font-size: 10.5px; width: 70%; }
+.conf-tbl td { border: 1px solid #4fc3f7; padding: 5px 10px; vertical-align: middle; }
+.conf-tbl .lbl { background: #ddf4fc; font-weight: bold; text-align: center; white-space: nowrap; }
+.cbrow { display: flex; gap: 14px; align-items: center; }
+.cbitem { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.cb2 { width: 11px; height: 11px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 11px; font-size: 9px; }
+
+.sign-row { display: flex; gap: 0; margin-bottom: 14px; }
+.sr-block { border: 1px solid #4fc3f7; flex: 1; display: flex; align-items: center; }
+.sr-label { background: #ddf4fc; font-weight: bold; padding: 6px 10px; font-size: 10.5px; white-space: nowrap; border-right: 1px solid #4fc3f7; min-width: 64px; text-align: center; }
+.sr-value { padding: 4px 10px; flex: 1; font-size: 11px; }
+
+.sign-area {
+  flex: 1; height: 44px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; overflow: hidden; padding: 2px 6px;
+}
+.sign-area img { max-height: 42px; max-width: 100%; display: none; }
+.sign-area .sp { font-size: 10px; color: #888; font-weight: bold; }
+.sign-btns { display: flex; gap: 4px; padding-right: 6px; }
+.sign-btn { font-size: 9px; border: 1px solid #90a4ae; background: #f5f5f5; padding: 3px 8px; cursor: pointer; border-radius: 2px; white-space: nowrap; }
+.sign-btn:hover { background: #e0e0e0; }
+
+.footer-area { display: flex; align-items: center; justify-content: center; position: relative; margin-top: 18px; }
+.footer-logo img { height: 32px; }
+.qr-corner { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; }
+.qr-lbl { font-size: 8px; color: #777; text-align: right; line-height: 1.5; }
+#qr-code img, #qr-code canvas { width: 70px !important; height: 70px !important; }
+
+#sign-modal {
+  display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: #000; z-index: 9999; flex-direction: column; transform: none !important;
+}
+.smh { background: #0d47a1; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.smh span { color: #fff; font-size: 18px; font-weight: 700; font-family: sans-serif; }
+.smh button { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 15px; cursor: pointer; }
+#mc { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; background: #fff; }
+.smf { background: #eceff1; padding: 14px 20px; display: flex; gap: 10px; flex-shrink: 0; }
+.smf button { flex: 1; padding: 16px; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: sans-serif; }
+.sm-cl { background: #fff; border: 1.5px solid #ccc !important; color: #333; }
+.sm-ok { background: #0d47a1; color: #fff; flex: 2; }
+
 @media print {
   html, body { background: #fff; height: 100%; }
   .ctrl-bar { display: none !important; }
@@ -155,22 +137,19 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
   .rp { padding: 8mm 10mm; }
   .sign-btns, .sign-btn { display: none !important; }
   #sign-modal { display: none !important; }
-  /* 全要素を1ページに強制収容 */
-  .title-area { margin-bottom: 4px; }
-  .cust-tbl { margin-bottom: 3px; }
-  .info { margin-bottom: 2px; }
-  .dr { margin: 2px 0 3px; }
-  .sec { margin-bottom: 2px; }
-  .sec .cell { min-height: 28px; }
-  .sec .cell-lg { min-height: 44px; }
-  .sec .cell-sm { min-height: 16px; }
-  .dt { margin-bottom: 2px; }
-  .pt { margin-bottom: 2px; }
-  .pt td { height: 13px; }
-  .conf { margin-bottom: 3px; }
-  .sign-area { height: 30px; }
-  .footer { margin-top: 3px; padding-top: 3px; }
-  /* 改ページ禁止 */
+  .title-wrap { margin-bottom: 8px; }
+  .top-area { margin-bottom: 8px; }
+  .main-tbl { margin-bottom: 5px; }
+  .date-row { margin-bottom: 5px; }
+  .body-tbl { margin-bottom: 4px; }
+  .body-tbl .work-cell { height: 60px; }
+  .body-tbl .remarks-cell { height: 22px; }
+  .data-tbl { margin-bottom: 4px; }
+  .parts-tbl { margin-bottom: 4px; }
+  .parts-tbl td { height: 16px; }
+  .conf-area { margin-bottom: 6px; }
+  .sign-row { margin-bottom: 6px; }
+  .sign-area { height: 32px; }
   * { page-break-inside: avoid; }
   table { page-break-inside: avoid; }
   @page { margin: 8mm; size: A4 portrait; }
@@ -188,99 +167,106 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 
 <div class="page-wrap"><div class="rp">
 
-  <!-- タイトルエリア -->
-  <div class="title-area">
-    <div class="company-left">
-      <!-- 左側は空白（元の帳票に合わせて余白） -->
+  <div class="page-tag">弊　社　控</div>
+
+  <div class="title-wrap">
+    <h1>空調機器　点検・作業報告書</h1>
+  </div>
+
+  <div class="top-area">
+    <div class="cust-col">
+      <div class="cust-row"><span class="clabel">お客様名</span><span class="cline" id="p-customerName"></span><span class="csama">様</span></div>
+      <div class="cust-row"><span class="clabel">ご　住　所</span><span class="cline" id="p-address"></span><span class="csama">様</span></div>
+      <div class="cust-row"><span class="clabel">ご依頼元</span><span class="cline" id="p-requester"></span><span class="csama">様</span></div>
     </div>
-    <div class="title-center">
-      <h1>空調機器　点検・作業報告書</h1>
-    </div>
-    <div class="company-right">
-      <div class="cr-name">シオンテクノス株式会社</div>
-      <div class="cr-row"><span class="cl">本　　社：</span><span>札幌市東区北24条東4丁目1-1<br>電話 011-751-8686㈹　FAX 011-702-0070</span></div>
-      <div class="cr-row"><span class="cl">函館営業所：</span><span>函館市八幡町2番14号<br>電話 0138-44-7150　FAX 0138-44-7151</span></div>
-      <div class="cr-row"><span class="cl">旭川営業所：</span><span>旭川市末広2条23丁目3-12<br>電話 0166-73-8272　FAX 0166-73-8273</span></div>
+    <div class="comp-box">
+      <div class="comp-name"><span class="clogo">S</span>シオンテクノス株式会社</div>
+      <div class="comp-row"><span class="lbl">本　　社：</span><span>札幌市東区北24条東4丁目1-1<br>電話 011-751-8686㈹　FAX 011-702-0070</span></div>
+      <div class="comp-row"><span class="lbl">函館営業所：</span><span>函館市八幡町2番14号<br>電話 0138-44-7150　FAX 0138-44-7151</span></div>
+      <div class="comp-row"><span class="lbl">旭川営業所：</span><span>旭川市末広2条23丁目3-12<br>電話 0166-73-8272　FAX 0166-73-8273</span></div>
     </div>
   </div>
 
-  <!-- 顧客情報 -->
-  <table class="cust-tbl">
+  <table class="main-tbl">
     <tr>
-      <td class="cl">お 客 様 名</td><td class="cv" id="p-customerName"></td><td class="cs">様</td>
-      <td style="width:16px"></td>
-      <td class="cl" style="width:44px">ご依頼元</td><td class="cv" id="p-requester"></td><td class="cs">様</td>
+      <td class="lbl">受付内容</td>
+      <td colspan="3" id="p-reception"></td>
     </tr>
     <tr>
-      <td class="cl">ご　住　所</td><td class="cv" colspan="5" id="p-address"></td><td></td>
-    </tr>
-    <tr>
-      <td class="cl">受 付 内 容</td><td class="cv" colspan="5" id="p-reception"></td><td></td>
-    </tr>
-  </table>
-
-  <!-- 機器情報 -->
-  <table class="info">
-    <tr>
-      <td class="lbl" style="width:52px">系統名<br>設置場所</td>
-      <td colspan="3" id="p-systemName"></td>
-      <td class="lbl" style="width:36px">品&nbsp;種</td>
+      <td class="lbl">系統名<br>設置場所</td>
+      <td id="p-systemName"></td>
+      <td class="lbl" style="width:60px">品　種</td>
       <td id="p-productType"></td>
     </tr>
     <tr>
-      <td class="lbl">メーカー</td><td id="p-maker"></td>
-      <td class="lbl" style="width:44px">機器型式</td><td id="p-model"></td>
-      <td class="lbl">製&nbsp;&nbsp;番</td><td id="p-serial"></td>
+      <td class="lbl">メーカー</td>
+      <td id="p-maker"></td>
+      <td class="lbl">機器型式</td>
+      <td id="p-model"></td>
     </tr>
     <tr>
-      <td class="lbl">使用冷媒</td><td>R-<span id="p-ref"></span></td>
-      <td class="lbl">出荷時充填量</td><td><span id="p-rship"></span><span id="p-rship-u"></span></td>
-      <td class="lbl">追加充填量</td><td><span id="p-radd"></span><span id="p-radd-u"></span></td>
+      <td class="lbl"></td>
+      <td></td>
+      <td class="lbl">製　番</td>
+      <td id="p-serial"></td>
     </tr>
     <tr>
-      <td class="lbl">冷媒回収量</td><td><span id="p-rrec"></span><span id="p-rrec-u"></span></td>
-      <td class="lbl">冷媒充填量</td><td colspan="3"><span id="p-rfil"></span><span id="p-rfil-u"></span></td>
+      <td class="lbl">使用冷媒</td>
+      <td>R-<span id="p-ref"></span></td>
+      <td class="lbl">出荷時<br>充填量</td>
+      <td><span id="p-rship"></span><span class="unit" id="p-rship-u"></span></td>
+    </tr>
+    <tr>
+      <td class="lbl"></td>
+      <td></td>
+      <td class="lbl">追加<br>充填量</td>
+      <td><span id="p-radd"></span><span class="unit" id="p-radd-u"></span></td>
+    </tr>
+    <tr>
+      <td class="lbl">冷媒<br>回収量</td>
+      <td><span id="p-rrec"></span><span class="unit" id="p-rrec-u"></span></td>
+      <td class="lbl">冷媒<br>充填量</td>
+      <td><span id="p-rfil"></span><span class="unit" id="p-rfil-u"></span></td>
     </tr>
   </table>
 
-  <!-- 作業日時 -->
-  <div class="dr">
-    作 業 日&nbsp;<span id="p-wy" class="ul"></span>年<span id="p-wm" class="ul"></span>月<span id="p-wd" class="ul"></span>日
+  <div class="date-row">
+    <span class="dlabel">作 業 日</span>
+    <span id="p-wy" class="date-uline"></span>年<span id="p-wm" class="date-uline"></span>月<span id="p-wd" class="date-uline"></span>日
     &nbsp;&nbsp;&nbsp;
-    作 業 時 間&nbsp;<span id="p-ws" class="ul" style="min-width:40px"></span>〜<span id="p-we" class="ul" style="min-width:40px"></span>
+    <span class="dlabel">作業時間</span>
+    <span id="p-ws" class="date-uline" style="min-width:48px"></span>〜<span id="p-we" class="date-uline" style="min-width:48px"></span>
   </div>
 
-  <!-- 発生状況 -->
-  <table class="sec">
+  <table class="body-tbl">
     <tr>
-      <td class="vt" rowspan="2">発&nbsp;生&nbsp;状&nbsp;況</td>
-      <td class="vs">症&nbsp;&nbsp;状</td><td class="cell" id="p-symptom"></td>
+      <td class="vlabel" rowspan="2">発　生　状　況</td>
+      <td class="vsub">症　状</td>
+      <td class="cell symptom-cell" id="p-symptom"></td>
     </tr>
     <tr>
-      <td class="vs">原&nbsp;&nbsp;因</td><td class="cell" id="p-cause"></td>
-    </tr>
-  </table>
-
-  <!-- 作業内容 -->
-  <table class="sec">
-    <tr>
-      <td class="vt" style="padding:8px 3px">作&nbsp;業&nbsp;内&nbsp;容</td>
-      <td class="cell cell-lg" id="p-work"></td>
+      <td class="vsub">原　因</td>
+      <td class="cell symptom-cell" id="p-cause"></td>
     </tr>
   </table>
 
-  <!-- 備考 -->
-  <table class="sec" style="margin-bottom:4px;">
+  <table class="body-tbl">
     <tr>
-      <td class="vt" style="padding:4px 3px;">備&nbsp;&nbsp;考</td>
-      <td class="cell" style="min-height:20px;" id="p-remarks"></td>
+      <td class="vlabel" style="width:30px">作　業　内　容</td>
+      <td class="cell work-cell" id="p-work"></td>
     </tr>
   </table>
 
-  <!-- 運転データ -->
-  <table class="dt">
+  <table class="body-tbl">
     <tr>
-      <th rowspan="2" class="vt">運&nbsp;転&nbsp;デ&nbsp;ー&nbsp;タ</th>
+      <td class="vlabel" style="width:30px">備　　考</td>
+      <td class="cell remarks-cell" id="p-remarks"></td>
+    </tr>
+  </table>
+
+  <table class="data-tbl">
+    <tr>
+      <th rowspan="2" class="vlabel">運　転　デ　ー　タ</th>
       <th>室内吸入温</th><th>室内吹出温</th><th>吐出圧力</th><th>吸入圧力</th><th>吐出温</th><th>吸入温</th><th>外気温</th><th>運転電流</th>
     </tr>
     <tr>
@@ -295,12 +281,11 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
     </tr>
   </table>
 
-  <!-- 使用部品 -->
-  <table class="pt">
+  <table class="parts-tbl">
     <tr>
-      <td class="vt" rowspan="5">使&nbsp;用&nbsp;部&nbsp;品</td>
-      <th style="width:36%">部　　品　　名</th>
-      <th style="width:9%">数量</th><th style="width:9%">単位</th>
+      <td class="vlabel" rowspan="5">使　用　部　品</td>
+      <th style="width:38%">部　　品　　名</th>
+      <th style="width:10%">数量</th><th style="width:10%">単位</th>
       <th>部　品　コ　ー　ド</th>
     </tr>
     <tr><td id="pn0"></td><td id="pq0"></td><td id="pu0"></td><td id="pc0"></td></tr>
@@ -309,38 +294,41 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
     <tr><td id="pn3"></td><td id="pq3"></td><td id="pu3"></td><td id="pc3"></td></tr>
   </table>
 
-  <!-- 作業確認・サイン -->
-  <table class="conf">
-    <tr>
-      <td class="lbl" style="width:56px">作業確認</td>
-      <td>
-        <div class="cbrow">
-          <div class="cbitem"><span class="cb2" id="cb-完了"></span>&nbsp;完了</div>
-          <div class="cbitem"><span class="cb2" id="cb-未完了"></span>&nbsp;未完了</div>
-          <div class="cbitem"><span class="cb2" id="cb-見積書提出"></span>&nbsp;見積書提出</div>
-        </div>
-      </td>
-      <td class="lbl" style="width:44px">作業者</td>
-      <td id="p-worker" style="min-width:60px"></td>
-      <td class="lbl" style="width:56px">お客様<br>ご署名</td>
-      <td style="min-width:110px; padding:2px 4px;">
-        <div class="sign-area" onclick="openSign()">
-          <img id="sign-img" src=""><span class="sp" id="sign-ph">タップしてサイン ✏</span>
-        </div>
-        <div class="sign-btns">
-          <button class="sign-btn" onclick="openSign()">✏ サイン</button>
-          <button class="sign-btn" onclick="clearSignData()">クリア</button>
-        </div>
-      </td>
-    </tr>
-  </table>
+  <div class="conf-area">
+    <table class="conf-tbl">
+      <tr>
+        <td class="lbl" style="width:80px">作業確認</td>
+        <td>
+          <div class="cbrow">
+            <div class="cbitem"><span class="cb2" id="cb-完了"></span>完了</div>
+            <div class="cbitem"><span class="cb2" id="cb-未完了"></span>未完了</div>
+            <div class="cbitem"><span class="cb2" id="cb-見積書提出"></span>見積書提出</div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
 
-  <!-- フッター -->
-  <div class="footer">
-    <div class="footer-logo">
-      <img src="data:image/png;base64,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" alt="シオンテクノス株式会社">
+  <div class="sign-row">
+    <div class="sr-block" style="flex:0.9">
+      <div class="sr-label">作　業　者</div>
+      <div class="sr-value" id="p-worker"></div>
     </div>
-    <div class="qr-wrap">
+    <div class="sr-block" style="flex:2; margin-left:8px;">
+      <div class="sr-label">お客様<br>ご署名</div>
+      <div class="sign-area" onclick="openSign()">
+        <img id="sign-img" src=""><span class="sp" id="sign-ph">タップしてサイン ✏</span>
+      </div>
+      <div class="sign-btns">
+        <button class="sign-btn" onclick="openSign()">✏ サイン</button>
+        <button class="sign-btn" onclick="clearSignData()">クリア</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-area">
+    <div class="footer-logo"><img src="data:image/png;base64,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" alt="シオンテクノス株式会社"></div>
+    <div class="qr-corner">
       <div class="qr-lbl">報告書をスマホで確認<br><span id="qr-url-text" style="font-size:7px;color:#aaa;word-break:break-all"></span></div>
       <div id="qr-code"></div>
     </div>
@@ -348,7 +336,6 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 
 </div></div>
 
-<!-- サインモーダル -->
 <div id="sign-modal">
   <div class="smh">
     <span>お客様サインをお願いします</span>
@@ -424,18 +411,15 @@ const cb = document.getElementById('cb-'+(data.status||''));
 if (cb) cb.textContent = '✓';
 set('p-worker', data.worker);
 
-// QR
 const base = location.origin + location.pathname.replace('print.html','');
 const qrUrl = base + 'view.html?id=' + (data.id||'');
 document.getElementById('qr-url-text').textContent = qrUrl.replace('https://','');
 if (typeof QRCode !== 'undefined' && data.id) {
-  new QRCode(document.getElementById('qr-code'), { text:qrUrl, width:72, height:72, colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.M });
+  new QRCode(document.getElementById('qr-code'), { text:qrUrl, width:70, height:70, colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.M });
 }
 
-// サイン復元
 (function(){ if (!data.id) return; try { const s = localStorage.getItem('sign_'+data.id); if(s){const img=document.getElementById('sign-img');img.src=s;img.style.display='block';document.getElementById('sign-ph').style.display='none';}} catch(e){} })();
 
-// サインモーダル
 const mc = document.getElementById('mc');
 const mx = mc.getContext('2d');
 let md = false;
@@ -448,8 +432,8 @@ mc.addEventListener('mouseleave',()=>md=false);
 mc.addEventListener('touchstart',e=>{e.preventDefault();md=true;const p=mPos(e);mx.beginPath();mx.moveTo(p.x,p.y);});
 mc.addEventListener('touchmove',e=>{e.preventDefault();if(!md)return;const p=mPos(e);mx.lineTo(p.x,p.y);mx.stroke();});
 mc.addEventListener('touchend',()=>md=false);
+
 window.openSign=function(){
-  // モーダルを実寸表示（縮小viewportをリセット）
   const vp = document.querySelector('meta[name=viewport]');
   vp._orig = vp.content;
   vp.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
@@ -458,7 +442,6 @@ window.openSign=function(){
 };
 window.closeSign=function(){
   document.getElementById('sign-modal').style.display='none';
-  // viewportを元のスケールに戻す
   const vp = document.querySelector('meta[name=viewport]');
   if (vp._orig) vp.content = vp._orig;
 };
@@ -479,7 +462,7 @@ window.clearSignData=function(){
   mx.clearRect(0,0,mc.width,mc.height);
   try{localStorage.removeItem('sign_'+data.id);}catch(e){}
 };
-// サイン画像を圧縮してBase64を小さくする
+
 function compressSign(srcDataUrl, maxW, maxH, quality) {
   return new Promise(resolve => {
     const img = new Image();
@@ -501,29 +484,19 @@ function compressSign(srcDataUrl, maxW, maxH, quality) {
 
 window.saveSign = async function() {
   const img = document.getElementById('sign-img');
-  if (!img.src || img.style.display === 'none') {
-    alert('先にサインしてください'); return;
-  }
+  if (!img.src || img.style.display === 'none') { alert('先にサインしてください'); return; }
   if (!data.id) { alert('報告書IDがありません'); return; }
 
   const btn = document.querySelector('.cb-s');
   btn.textContent = '保存中…'; btn.disabled = true;
 
   try {
-    // ローカルにオリジナルを保存
     try { localStorage.setItem('sign_' + data.id, img.src); } catch(e) {}
-
-    // 300x100px・JPEG quality0.7に圧縮（約5-10KB）
     const compressed = await compressSign(img.src, 300, 100, 0.7);
     const base64only = compressed.replace(/^data:image\/jpeg;base64,/, '');
-
-    // GETで送信（URLパラメータ）
-    const url = GAS_URL + '?action=saveSign&id=' + encodeURIComponent(data.id)
-              + '&signData=' + encodeURIComponent(base64only);
-
+    const url = GAS_URL + '?action=saveSign&id=' + encodeURIComponent(data.id) + '&signData=' + encodeURIComponent(base64only);
     const res = await fetch(url, { redirect: 'follow' });
     const json = await res.json();
-
     if (json.status === 'ok') {
       alert('✓ サインをGoogle Driveに保存しました！\nQRコードからもサインが確認できます。');
     } else {

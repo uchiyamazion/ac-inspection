@@ -1,232 +1,221 @@
-// GAS_URLはjs/config.jsで設定
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>空調機器 点検・作業報告システム｜シオンテクノス</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app">
 
-let allReports = [];
-let currentReportId = null;
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-icon">❄</span>
+        <div>
+          <div class="brand-name">シオンテクノス</div>
+          <div class="brand-sub">空調機器 点検・作業報告システム</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-btn active" data-view="list" onclick="showView('list')">履歴一覧</button>
+        <button class="nav-btn" data-view="form" onclick="showView('form')">新規報告書</button>
+      </nav>
+    </div>
+  </header>
 
-document.addEventListener('DOMContentLoaded', () => {
-  setTodayDate();
-  addPartRow();
-  loadReports();
-});
+  <!-- List View -->
+  <section id="view-list" class="view active">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">点検履歴</h2>
+        <button class="btn btn-primary" onclick="showView('form')">＋ 新規作成</button>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <input type="text" id="search-site" class="filter-input" placeholder="現場名・お客様名で検索…" oninput="filterReports()">
+        </div>
+        <div class="filter-group">
+          <input type="month" id="filter-month" class="filter-input" oninput="filterReports()">
+        </div>
+        <div class="filter-group">
+          <select id="filter-status" class="filter-input" onchange="filterReports()">
+            <option value="">すべてのステータス</option>
+            <option value="完了">完了</option>
+            <option value="未完了">未完了</option>
+            <option value="見積書提出">見積書提出</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost" onclick="clearFilters()">クリア</button>
+      </div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>作業日</th>
+              <th>現場名</th>
+              <th>メーカー</th>
+              <th>型式</th>
+              <th>使用冷媒</th>
+              <th>ステータス</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="report-tbody">
+            <tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⏳</span><p>データを読み込み中…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
-function setTodayDate() {
-  document.getElementById('work-date').value = new Date().toISOString().split('T')[0];
-}
+  <!-- Form View -->
+  <section id="view-form" class="view">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title" id="form-title">新規 点検・作業報告書</h2>
+        <button class="btn btn-ghost" onclick="showView('list')">← 一覧に戻る</button>
+      </div>
+      <form id="report-form" onsubmit="saveReport(event)">
+        <input type="hidden" id="doc-id">
 
-window.showView = function(view, keepId) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-' + view).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
-  if (view === 'form' && !keepId) resetForm();
-};
+        <div class="card">
+          <h3 class="card-title">基本情報</h3>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">お客様名 <span class="required">*</span></label><input type="text" id="customer-name" class="form-input" required placeholder="株式会社〇〇"></div>
+            <div class="form-group"><label class="form-label">ご住所</label><input type="text" id="address" class="form-input" placeholder="〇〇市〇〇町1-2-3"></div>
+            <div class="form-group"><label class="form-label">ご依頼元</label><input type="text" id="requester" class="form-input"></div>
+            <div class="form-group"><label class="form-label">受付内容</label><input type="text" id="reception" class="form-input"></div>
+          </div>
+        </div>
 
-// ===== GAS通信（fetchベース・GASのリダイレクト対応）=====
-async function gasCall(params) {
-  const url = GAS_URL + '?' + new URLSearchParams(params).toString();
-  const res = await fetch(url, { redirect: 'follow' });
-  const json = await res.json();
-  if (json.status === 'error') throw new Error(json.data?.message || 'エラー');
-  return json.data;
-}
+        <div class="card">
+          <h3 class="card-title">機器情報</h3>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">系統名 / 設置場所 <span class="required">*</span></label><input type="text" id="system-name" class="form-input" required placeholder="1F 事務室"></div>
+            <div class="form-group"><label class="form-label">品種</label><input type="text" id="product-type" class="form-input" placeholder="天井カセット型"></div>
+            <div class="form-group"><label class="form-label">メーカー</label><input type="text" id="maker" class="form-input" placeholder="ダイキン"></div>
+            <div class="form-group"><label class="form-label">機器型式</label><input type="text" id="model" class="form-input"></div>
+            <div class="form-group"><label class="form-label">製番</label><input type="text" id="serial" class="form-input"></div>
+            <div class="form-group"><label class="form-label">使用冷媒</label><input type="text" id="refrigerant" class="form-input" placeholder="R-32"></div>
+          </div>
+          <div class="form-grid cols-4" style="margin-top:16px">
+            <div class="form-group"><label class="form-label">出荷時充填量 (kg)</label><input type="number" id="ref-ship" class="form-input" step="0.01" min="0"></div>
+            <div class="form-group"><label class="form-label">追加充填量 (kg)</label><input type="number" id="ref-add" class="form-input" step="0.01" min="0"></div>
+            <div class="form-group"><label class="form-label">冷媒回収量 (kg)</label><input type="number" id="ref-recover" class="form-input" step="0.01" min="0"></div>
+            <div class="form-group"><label class="form-label">冷媒充填量 (kg)</label><input type="number" id="ref-fill" class="form-input" step="0.01" min="0"></div>
+          </div>
+        </div>
 
-// ===== Load =====
-async function loadReports() {
-  try {
-    allReports = await gasCall({ action: 'list' });
-    renderTable(allReports);
-    if (location.hash.length > 1) openFromHash();
-  } catch (e) {
-    renderTable([]);
-    showToast('読込失敗: ' + e.message, 'error');
-  }
-}
+        <div class="card">
+          <h3 class="card-title">作業情報</h3>
+          <div class="form-grid cols-3">
+            <div class="form-group"><label class="form-label">作業日 <span class="required">*</span></label><input type="date" id="work-date" class="form-input" required></div>
+            <div class="form-group"><label class="form-label">作業開始</label><input type="time" id="work-start" class="form-input"></div>
+            <div class="form-group"><label class="form-label">作業終了</label><input type="time" id="work-end" class="form-input"></div>
+          </div>
+          <div class="form-group" style="margin-top:16px"><label class="form-label">発生状況 — 症状</label><textarea id="symptom" class="form-textarea" rows="3" placeholder="発生している症状を記入…"></textarea></div>
+          <div class="form-group"><label class="form-label">発生状況 — 原因</label><textarea id="cause" class="form-textarea" rows="3" placeholder="推定・確認された原因…"></textarea></div>
+          <div class="form-group"><label class="form-label">作業内容</label><textarea id="work-content" class="form-textarea" rows="5" placeholder="実施した作業の詳細…"></textarea></div>
+          <div class="form-group"><label class="form-label">備考</label><textarea id="remarks" class="form-textarea" rows="3"></textarea></div>
+        </div>
 
-// ===== Render =====
-function renderTable(reports) {
-  const tbody = document.getElementById('report-tbody');
-  if (!reports || !reports.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">📋</span><p>報告書がありません。「新規報告書」から作成してください。</p></div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = reports.map(r =>
-    '<tr>' +
-    '<td style="white-space:nowrap;font-family:var(--mono);font-size:12px">' + formatDate(r.workDate) + '</td>' +
-    '<td><strong>' + esc(r.systemName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.customerName||'') + '</span></td>' +
-    '<td>' + esc(r.maker||'—') + '</td>' +
-    '<td style="font-family:var(--mono);font-size:12px">' + esc(r.model||'—') + '</td>' +
-    '<td>' + esc(r.refrigerant||'—') + '</td>' +
-    '<td><span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span></td>' +
-    '<td><div class="row-actions">' +
-      '<button class="row-btn" onclick="viewReport(\'' + r.id + '\')">詳細</button>' +
-      '<button class="row-btn" onclick="editReport(\'' + r.id + '\')">編集</button>' +
-      '<button class="row-btn danger" onclick="deleteReport(\'' + r.id + '\')">削除</button>' +
-    '</div></td></tr>'
-  ).join('');
-}
+        <div class="card">
+          <h3 class="card-title">運転データ</h3>
+          <div class="form-grid cols-4">
+            <div class="form-group"><label class="form-label">室内吸入温 (℃)</label><input type="number" id="temp-indoor-in" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">室内吹出温 (℃)</label><input type="number" id="temp-indoor-out" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">吐出圧力 (MPa)</label><input type="number" id="press-discharge" class="form-input" step="0.01"></div>
+            <div class="form-group"><label class="form-label">吸入圧力 (MPa)</label><input type="number" id="press-suction" class="form-input" step="0.01"></div>
+            <div class="form-group"><label class="form-label">吐出温 (℃)</label><input type="number" id="temp-discharge" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">吸入温 (℃)</label><input type="number" id="temp-suction" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">外気温 (℃)</label><input type="number" id="temp-outdoor" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">運転電流 (A)</label><input type="number" id="current" class="form-input" step="0.1"></div>
+          </div>
+        </div>
 
-// ===== Filter =====
-window.filterReports = function() {
-  const site = document.getElementById('search-site').value.toLowerCase();
-  const month = document.getElementById('filter-month').value;
-  const status = document.getElementById('filter-status').value;
-  renderTable(allReports.filter(r =>
-    (!site || (r.systemName||'').toLowerCase().includes(site) || (r.customerName||'').toLowerCase().includes(site)) &&
-    (!month || (r.workDate||'').startsWith(month)) &&
-    (!status || r.status === status)
-  ));
-};
-window.clearFilters = function() {
-  document.getElementById('search-site').value = '';
-  document.getElementById('filter-month').value = '';
-  document.getElementById('filter-status').value = '';
-  renderTable(allReports);
-};
+        <div class="card">
+          <h3 class="card-title">使用部品</h3>
+          <div id="parts-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addPartRow()">＋ 部品を追加</button>
+        </div>
 
-// ===== Save =====
-window.saveReport = async function(e) {
-  e.preventDefault();
-  const btn = document.getElementById('submit-btn');
-  btn.disabled = true; btn.textContent = '保存中…';
-  const data = collectFormData();
-  try {
-    const params = { action: currentReportId ? 'update' : 'create', data: encodeURIComponent(JSON.stringify(data)) };
-    if (currentReportId) params.id = currentReportId;
-    await gasCall(params);
-    showToast(currentReportId ? '更新しました' : '保存しました', 'success');
-    currentReportId = null;
-    await loadReports();
-    showView('list');
-  } catch (err) {
-    showToast('保存失敗: ' + err.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '保存する';
-  }
-};
+        <div class="card">
+          <h3 class="card-title">作業確認</h3>
+          <div class="form-grid cols-2">
+            <div class="form-group"><label class="form-label">ステータス <span class="required">*</span></label>
+              <select id="status" class="form-input" required>
+                <option value="完了">完了</option>
+                <option value="未完了">未完了</option>
+                <option value="見積書提出">見積書提出</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">作業者</label><input type="text" id="worker" class="form-input"></div>
+          </div>
 
-function collectFormData() {
-  const parts = [];
-  document.querySelectorAll('.part-row').forEach(row => {
-    const ins = row.querySelectorAll('input');
-    if (ins[0].value) parts.push({ name: ins[0].value, qty: ins[1].value, unit: ins[2].value, code: ins[3].value });
-  });
-  return {
-    customerName: v('customer-name'), address: v('address'), requester: v('requester'), reception: v('reception'),
-    systemName: v('system-name'), productType: v('product-type'), maker: v('maker'), model: v('model'),
-    serial: v('serial'), refrigerant: v('refrigerant'),
-    refShip: vn('ref-ship'), refAdd: vn('ref-add'), refRecover: vn('ref-recover'), refFill: vn('ref-fill'),
-    workDate: v('work-date'), workStart: v('work-start'), workEnd: v('work-end'),
-    symptom: v('symptom'), cause: v('cause'), workContent: v('work-content'), remarks: v('remarks'),
-    tempIndoorIn: vn('temp-indoor-in'), tempIndoorOut: vn('temp-indoor-out'),
-    pressDischarge: vn('press-discharge'), pressSuction: vn('press-suction'),
-    tempDischarge: vn('temp-discharge'), tempSuction: vn('temp-suction'),
-    tempOutdoor: vn('temp-outdoor'), current: vn('current'),
-    parts, status: v('status'), worker: v('worker'), confirmer: v('confirmer'),
-  };
-}
+          <!-- お客様サイン欄（確認者欄を差し替え） -->
+          <div class="form-group" style="margin-top:18px">
+            <label class="form-label">お客様 ご署名 <span class="sign-hint">（タップしてサインしてください）</span></label>
+            <div class="sign-input-wrap">
+              <div class="sign-canvas-area" id="sign-preview" onclick="openSignPad()">
+                <img id="sign-preview-img" src="" alt="サイン">
+                <span id="sign-preview-ph" class="sign-ph-text">タップしてサイン ✏</span>
+              </div>
+              <div class="sign-input-btns">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="openSignPad()">✏ サイン</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="clearSignInput()">クリア</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-// ===== Detail Modal =====
-window.viewReport = function(id, readOnly) {
-  const r = allReports.find(x => x.id === id);
-  if (!r) return;
-  currentReportId = id;
-  document.getElementById('modal-title').textContent = formatDate(r.workDate) + ' — ' + (r.systemName || '');
-  const partsHtml = r.parts && r.parts.length
-    ? '<div class="detail-section"><h4>使用部品</h4><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--primary-light)"><th style="padding:8px;text-align:left">部品名</th><th style="padding:8px">数量</th><th style="padding:8px">単位</th><th style="padding:8px;text-align:left">コード</th></tr></thead><tbody>'
-      + r.parts.map(p => '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:8px">' + esc(p.name) + '</td><td style="padding:8px;text-align:center">' + esc(p.qty) + '</td><td style="padding:8px;text-align:center">' + esc(p.unit) + '</td><td style="padding:8px;font-family:var(--mono);font-size:12px">' + esc(p.code) + '</td></tr>').join('')
-      + '</tbody></table></div>' : '';
-  document.getElementById('modal-body').innerHTML =
-    '<div class="detail-section"><h4>基本情報</h4><div class="detail-grid">' + df('お客様名',r.customerName) + df('ご住所',r.address) + df('ご依頼元',r.requester) + df('受付内容',r.reception) + '</div></div>' +
-    '<div class="detail-section"><h4>機器情報</h4><div class="detail-grid">' + df('系統名',r.systemName) + df('品種',r.productType) + df('メーカー',r.maker) + df('型式',r.model,true) + df('製番',r.serial,true) + df('使用冷媒',r.refrigerant) + df('出荷時充填量',r.refShip!=null&&r.refShip!==''?r.refShip+' kg':'') + df('追加充填量',r.refAdd!=null&&r.refAdd!==''?r.refAdd+' kg':'') + df('冷媒回収量',r.refRecover!=null&&r.refRecover!==''?r.refRecover+' kg':'') + df('冷媒充填量',r.refFill!=null&&r.refFill!==''?r.refFill+' kg':'') + '</div></div>' +
-    '<div class="detail-section"><h4>作業情報</h4><div class="detail-grid">' + df('作業日',formatDate(r.workDate)) + df('作業時間',r.workStart&&r.workEnd?r.workStart+'～'+r.workEnd:'') + '</div>' + dft('症状',r.symptom) + dft('原因',r.cause) + dft('作業内容',r.workContent) + dft('備考',r.remarks) + '</div>' +
-    '<div class="detail-section"><h4>運転データ</h4><div class="detail-grid">' + df('室内吸入温',r.tempIndoorIn!=null&&r.tempIndoorIn!==''?r.tempIndoorIn+' ℃':'',true) + df('室内吹出温',r.tempIndoorOut!=null&&r.tempIndoorOut!==''?r.tempIndoorOut+' ℃':'',true) + df('吐出圧力',r.pressDischarge!=null&&r.pressDischarge!==''?r.pressDischarge+' MPa':'',true) + df('吸入圧力',r.pressSuction!=null&&r.pressSuction!==''?r.pressSuction+' MPa':'',true) + df('吐出温',r.tempDischarge!=null&&r.tempDischarge!==''?r.tempDischarge+' ℃':'',true) + df('吸入温',r.tempSuction!=null&&r.tempSuction!==''?r.tempSuction+' ℃':'',true) + df('外気温',r.tempOutdoor!=null&&r.tempOutdoor!==''?r.tempOutdoor+' ℃':'',true) + df('運転電流',r.current!=null&&r.current!==''?r.current+' A':'',true) + '</div></div>' +
-    partsHtml +
-    '<div class="detail-section"><h4>作業確認</h4><div class="detail-grid">' + df('ステータス',r.status) + df('作業者',r.worker) + df('確認者',r.confirmer) + '</div></div>';
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" onclick="showView('list')">キャンセル</button>
+          <button type="submit" class="btn btn-primary" id="submit-btn">保存する</button>
+        </div>
+      </form>
+    </div>
+  </section>
 
-  const editBtn = document.getElementById('edit-btn');
-  const printBtn = document.getElementById('print-btn');
-  if (editBtn) editBtn.style.display = readOnly ? 'none' : '';
-  if (printBtn) printBtn.style.display = readOnly ? 'none' : '';
-  document.getElementById('detail-modal').classList.add('open');
-};
+  <!-- Sign Pad Modal -->
+  <div id="sign-pad-modal" class="sign-modal-overlay">
+    <div class="sign-modal-header">
+      <span>お客様サインをお願いします</span>
+      <button type="button" onclick="closeSignPad()">キャンセル</button>
+    </div>
+    <div class="sign-modal-canvas-wrap">
+      <canvas id="sign-pad-canvas"></canvas>
+      <div class="sign-modal-guide">こちらにサインしてください</div>
+    </div>
+    <div class="sign-modal-footer">
+      <button type="button" class="sign-modal-clear" onclick="clearSignPad()">クリア</button>
+      <button type="button" class="sign-modal-confirm" onclick="confirmSignPad()">✓ このサインで確定</button>
+    </div>
+  </div>
 
-window.closeModal = function(e) {
-  if (!e || e.target === document.getElementById('detail-modal'))
-    document.getElementById('detail-modal').classList.remove('open');
-};
-window.editCurrentReport = function() { closeModal(); editReport(currentReportId); };
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">報告書詳細</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">閉じる</button>
+        <button class="btn btn-secondary" id="print-btn" onclick="openPrint()">🖨 PDF出力</button>
+        <button class="btn btn-primary" id="edit-btn" onclick="editCurrentReport()">編集</button>
+      </div>
+    </div>
+  </div>
 
-// ===== Edit =====
-window.editReport = function(id) {
-  const r = allReports.find(x => x.id === id);
-  if (!r) return;
-  currentReportId = id;
-  document.getElementById('form-title').textContent = '点検・作業報告書 — 編集';
-  const map = [['customer-name','customerName'],['address','address'],['requester','requester'],['reception','reception'],['system-name','systemName'],['product-type','productType'],['maker','maker'],['model','model'],['serial','serial'],['refrigerant','refrigerant'],['ref-ship','refShip'],['ref-add','refAdd'],['ref-recover','refRecover'],['ref-fill','refFill'],['work-date','workDate'],['work-start','workStart'],['work-end','workEnd'],['symptom','symptom'],['cause','cause'],['work-content','workContent'],['remarks','remarks'],['temp-indoor-in','tempIndoorIn'],['temp-indoor-out','tempIndoorOut'],['press-discharge','pressDischarge'],['press-suction','pressSuction'],['temp-discharge','tempDischarge'],['temp-suction','tempSuction'],['temp-outdoor','tempOutdoor'],['current','current'],['status','status'],['worker','worker'],['confirmer','confirmer']];
-  map.forEach(([fid, key]) => setv(fid, r[key]));
-  const pl = document.getElementById('parts-list'); pl.innerHTML = '';
-  (r.parts && r.parts.length ? r.parts : [{}]).forEach(p => addPartRow(p));
-  showView('form', true);
-};
+  <div id="toast" class="toast"></div>
+</div>
 
-// ===== Delete =====
-window.deleteReport = async function(id) {
-  if (!confirm('この報告書を削除しますか？')) return;
-  try {
-    await gasCall({ action: 'delete', id });
-    showToast('削除しました', 'success');
-    await loadReports();
-  } catch (err) { showToast('削除失敗: ' + err.message, 'error'); }
-};
-
-function resetForm() {
-  currentReportId = null;
-  document.getElementById('form-title').textContent = '新規 点検・作業報告書';
-  document.getElementById('report-form').reset();
-  setTodayDate();
-  document.getElementById('parts-list').innerHTML = '';
-  addPartRow();
-}
-
-window.addPartRow = function(data) {
-  data = data || {};
-  const div = document.createElement('div');
-  div.className = 'part-row';
-  div.innerHTML =
-    '<input type="text" class="form-input" placeholder="部品名" value="' + esc(data.name||'') + '">' +
-    '<input type="number" class="form-input" placeholder="数量" value="' + (data.qty||'') + '" min="0">' +
-    '<input type="text" class="form-input" placeholder="単位" value="' + esc(data.unit||'') + '">' +
-    '<input type="text" class="form-input" placeholder="部品コード" value="' + esc(data.code||'') + '">' +
-    '<button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>';
-  document.getElementById('parts-list').appendChild(div);
-};
-
-// ===== 印刷（帳票）=====
-window.openPrint = function() {
-  const r = allReports.find(x => x.id === currentReportId);
-  if (!r) return;
-  const url = 'print.html?data=' + encodeURIComponent(JSON.stringify(r));
-  window.open(url, '_blank');
-};
-
-// ===== ハッシュから閲覧専用で開く =====
-function openFromHash() {
-  const id = location.hash.replace('#', '');
-  if (!id) return;
-  const r = allReports.find(x => x.id === id);
-  if (r) { currentReportId = id; viewReport(id, true); }
-}
-
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type ? ' ' + type : '');
-  setTimeout(() => t.className = 'toast', 3500);
-}
-
-const v = id => (document.getElementById(id)?.value || '').trim();
-const vn = id => { const val = document.getElementById(id)?.value; return val !== '' && val != null ? Number(val) : null; };
-const setv = (id, val) => { const el = document.getElementById(id); if (el && val != null && val !== '') el.value = val; };
-const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const formatDate = d => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt) ? d : dt.getFullYear() + '/' + String(dt.getMonth()+1).padStart(2,'0') + '/' + String(dt.getDate()).padStart(2,'0'); };
-const df = (label, val, mono) => val != null && val !== '' ? '<div class="detail-field"><div class="detail-label">' + esc(label) + '</div><div class="detail-value' + (mono?' mono':'') + '">' + esc(val) + '</div></div>' : '';
-const dft = (label, val) => val ? '<div class="detail-field" style="margin-bottom:12px"><div class="detail-label">' + esc(label) + '</div><div class="detail-text">' + esc(val) + '</div></div>' : '';
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

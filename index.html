@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>空調機器 点検・作業報告システム｜シオンテクノス</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/sign-additions.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-icon">❄</span>
+        <div>
+          <div class="brand-name">シオンテクノス</div>
+          <div class="brand-sub">空調機器 点検・作業報告システム</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-btn active" data-view="list" onclick="showView('list')">履歴一覧</button>
+        <button class="nav-btn" data-view="form" onclick="showView('form')">新規報告書</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- List View -->
+  <section id="view-list" class="view active">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">点検履歴</h2>
+        <button class="btn btn-primary" onclick="showView('form')">＋ 新規作成</button>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <input type="text" id="search-site" class="filter-input" placeholder="現場名・お客様名で検索…" oninput="filterReports()">
+        </div>
+        <div class="filter-group">
+          <input type="month" id="filter-month" class="filter-input" oninput="filterReports()">
+        </div>
+        <div class="filter-group">
+          <select id="filter-status" class="filter-input" onchange="filterReports()">
+            <option value="">すべてのステータス</option>
+            <option value="完了">完了</option>
+            <option value="未完了">未完了</option>
+            <option value="見積書提出">見積書提出</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost" onclick="clearFilters()">クリア</button>
+      </div>
+      <div class="table-wrap">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>作業日</th>
+              <th>現場名</th>
+              <th>メーカー</th>
+              <th>型式</th>
+              <th>使用冷媒</th>
+              <th>ステータス</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="report-tbody">
+            <tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⏳</span><p>データを読み込み中…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Form View -->
+  <section id="view-form" class="view">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title" id="form-title">新規 点検・作業報告書</h2>
+        <button class="btn btn-ghost" onclick="showView('list')">← 一覧に戻る</button>
+      </div>
+      <form id="report-form" onsubmit="saveReport(event)">
+        <input type="hidden" id="doc-id">
+
+        <div class="card">
+          <h3 class="card-title">基本情報</h3>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">お客様名 <span class="required">*</span></label><input type="text" id="customer-name" class="form-input" required placeholder="株式会社〇〇"></div>
+            <div class="form-group"><label class="form-label">ご住所</label><input type="text" id="address" class="form-input" placeholder="〇〇市〇〇町1-2-3"></div>
+            <div class="form-group"><label class="form-label">ご依頼元</label><input type="text" id="requester" class="form-input"></div>
+            <div class="form-group"><label class="form-label">受付内容</label><input type="text" id="reception" class="form-input"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">機器情報</h3>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">系統名 / 設置場所 <span class="required">*</span></label><input type="text" id="system-name" class="form-input" required placeholder="1F 事務室"></div>
+            <div class="form-group"><label class="form-label">品種</label><input type="text" id="product-type" class="form-input" placeholder="天井カセット型"></div>
+            <div class="form-group"><label class="form-label">メーカー</label><input type="text" id="maker" class="form-input" placeholder="ダイキン"></div>
+            <div class="form-group"><label class="form-label">機器型式</label><input type="text" id="model" class="form-input"></div>
+            <div class="form-group"><label class="form-label">製番</label><input type="text" id="serial" class="form-input"></div>
+            <div class="form-group"><label class="form-label">使用冷媒</label><input type="text" id="refrigerant" class="form-input" placeholder="R-32"></div>
+          </div>
+          <div class="form-grid cols-4" style="margin-top:16px">
+            <div class="form-group"><label class="form-label">出荷時充填量 (kg)</label><input type="number" id="ref-ship" class="form-input" step="0.01" min="0"></div>
+            <div class="form-group"><label class="form-label">追加充填量 (kg)</label><input type="number" id="ref-add" class="form-input" step="0.01" min="0"></div>
+            <div class="form-group"><label class="form-label">冷媒回収量 (kg)</label><input type="number" id="ref-recover" class="form-input" step="0.01" min="0"></div>
+            <div class="form-group"><label class="form-label">冷媒充填量 (kg)</label><input type="number" id="ref-fill" class="form-input" step="0.01" min="0"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">作業情報</h3>
+          <div class="form-grid cols-3">
+            <div class="form-group"><label class="form-label">作業日 <span class="required">*</span></label><input type="date" id="work-date" class="form-input" required></div>
+            <div class="form-group"><label class="form-label">作業開始</label><input type="time" id="work-start" class="form-input"></div>
+            <div class="form-group"><label class="form-label">作業終了</label><input type="time" id="work-end" class="form-input"></div>
+          </div>
+          <div class="form-group" style="margin-top:16px"><label class="form-label">発生状況 — 症状</label><textarea id="symptom" class="form-textarea" rows="3" placeholder="発生している症状を記入…"></textarea></div>
+          <div class="form-group"><label class="form-label">発生状況 — 原因</label><textarea id="cause" class="form-textarea" rows="3" placeholder="推定・確認された原因…"></textarea></div>
+          <div class="form-group"><label class="form-label">作業内容</label><textarea id="work-content" class="form-textarea" rows="5" placeholder="実施した作業の詳細…"></textarea></div>
+          <div class="form-group"><label class="form-label">備考</label><textarea id="remarks" class="form-textarea" rows="3"></textarea></div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">運転データ</h3>
+          <div class="form-grid cols-4">
+            <div class="form-group"><label class="form-label">室内吸入温 (℃)</label><input type="number" id="temp-indoor-in" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">室内吹出温 (℃)</label><input type="number" id="temp-indoor-out" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">吐出圧力 (MPa)</label><input type="number" id="press-discharge" class="form-input" step="0.01"></div>
+            <div class="form-group"><label class="form-label">吸入圧力 (MPa)</label><input type="number" id="press-suction" class="form-input" step="0.01"></div>
+            <div class="form-group"><label class="form-label">吐出温 (℃)</label><input type="number" id="temp-discharge" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">吸入温 (℃)</label><input type="number" id="temp-suction" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">外気温 (℃)</label><input type="number" id="temp-outdoor" class="form-input" step="0.1"></div>
+            <div class="form-group"><label class="form-label">運転電流 (A)</label><input type="number" id="current" class="form-input" step="0.1"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">使用部品</h3>
+          <div id="parts-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addPartRow()">＋ 部品を追加</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">作業確認</h3>
+          <div class="form-grid cols-2">
+            <div class="form-group"><label class="form-label">ステータス <span class="required">*</span></label>
+              <select id="status" class="form-input" required>
+                <option value="完了">完了</option>
+                <option value="未完了">未完了</option>
+                <option value="見積書提出">見積書提出</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">作業者</label><input type="text" id="worker" class="form-input"></div>
+          </div>
+
+          <!-- お客様サイン欄 -->
+          <div class="form-group" style="margin-top:18px">
+            <label class="form-label">お客様 ご署名 <span class="sign-hint">（タップしてサインしてください）</span></label>
+            <div class="sign-input-wrap">
+              <div class="sign-canvas-area" id="sign-preview" onclick="openSignPad()">
+                <img id="sign-preview-img" src="" alt="サイン">
+                <span id="sign-preview-ph" class="sign-ph-text">タップしてサイン ✏</span>
+              </div>
+              <div class="sign-input-btns">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="openSignPad()">✏ サイン</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="clearSignInput()">クリア</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" onclick="showView('list')">キャンセル</button>
+          <button type="submit" class="btn btn-primary" id="submit-btn">保存する</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Sign Pad Modal -->
+  <div id="sign-pad-modal" class="sign-modal-overlay">
+    <div class="sign-modal-header">
+      <span>お客様サインをお願いします</span>
+      <button type="button" onclick="closeSignPad()">キャンセル</button>
+    </div>
+    <div class="sign-modal-canvas-wrap">
+      <canvas id="sign-pad-canvas"></canvas>
+      <div class="sign-modal-guide">こちらにサインしてください</div>
+    </div>
+    <div class="sign-modal-footer">
+      <button type="button" class="sign-modal-clear" onclick="clearSignPad()">クリア</button>
+      <button type="button" class="sign-modal-confirm" onclick="confirmSignPad()">✓ このサインで確定</button>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">報告書詳細</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">閉じる</button>
+        <button class="btn btn-secondary" id="print-btn" onclick="openPrint()">🖨 PDF出力</button>
+        <button class="btn btn-primary" id="edit-btn" onclick="editCurrentReport()">編集</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

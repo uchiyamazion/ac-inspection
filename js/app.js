@@ -220,6 +220,7 @@ window.editReport = function(id) {
     const img = document.getElementById('sign-preview-img');
     img.src = r.customerSign; img.style.display = 'block';
     document.getElementById('sign-preview-ph').style.display = 'none';
+    document.getElementById('sign-preview').classList.add('signed');
   } else {
     clearSignInputDisplay();
   }
@@ -338,6 +339,7 @@ window.confirmSignPad = function() {
   const img = document.getElementById('sign-preview-img');
   img.src = dataUrl; img.style.display = 'block';
   document.getElementById('sign-preview-ph').style.display = 'none';
+  document.getElementById('sign-preview').classList.add('signed');
   closeSignPad();
 };
 window.clearSignInput = function() {
@@ -348,6 +350,7 @@ function clearSignInputDisplay() {
   const img = document.getElementById('sign-preview-img');
   img.src = ''; img.style.display = 'none';
   document.getElementById('sign-preview-ph').style.display = '';
+  document.getElementById('sign-preview').classList.remove('signed');
 }
 
 // ===== Helpers =====

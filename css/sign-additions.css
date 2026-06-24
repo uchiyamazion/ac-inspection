@@ -36,7 +36,10 @@
   max-height: 64px;
   max-width: 100%;
   display: none;
-  filter: contrast(1.6) brightness(0.85);
+  filter: contrast(1.8);
+}
+.sign-canvas-area.signed {
+  background: #fff;
 }
 .sign-ph-text {
   font-size: 13px;

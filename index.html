@@ -101,7 +101,20 @@
             <div class="form-group"><label class="form-label">メーカー</label><input type="text" id="maker" class="form-input" placeholder="ダイキン"></div>
             <div class="form-group"><label class="form-label">機器型式</label><input type="text" id="model" class="form-input"></div>
             <div class="form-group"><label class="form-label">製番</label><input type="text" id="serial" class="form-input"></div>
-            <div class="form-group"><label class="form-label">使用冷媒</label><input type="text" id="refrigerant" class="form-input" placeholder="R-32"></div>
+            <div class="form-group">
+              <label class="form-label">使用冷媒</label>
+              <select id="refrigerant" class="form-input" onchange="document.getElementById('refrigerant-other').style.display = this.value === 'その他' ? '' : 'none';">
+                <option value=""></option>
+                <option value="R-32">R-32</option>
+                <option value="R-410A">R-410A</option>
+                <option value="R-407C">R-407C</option>
+                <option value="R-22">R-22</option>
+                <option value="R-404A">R-404A</option>
+                <option value="R-134a">R-134a</option>
+                <option value="その他">その他（自由入力）</option>
+              </select>
+              <input type="text" id="refrigerant-other" class="form-input" placeholder="冷媒名を入力" style="display:none;margin-top:8px">
+            </div>
           </div>
           <div class="form-grid cols-4" style="margin-top:16px">
             <div class="form-group"><label class="form-label">出荷時充填量 (kg)</label><input type="number" id="ref-ship" class="form-input" step="0.01" min="0"></div>

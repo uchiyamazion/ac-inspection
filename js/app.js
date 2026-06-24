@@ -157,7 +157,7 @@ function collectFormData() {
   return {
     customerName: v('customer-name'), address: v('address'), requester: v('requester'), reception: v('reception'),
     systemName: v('system-name'), productType: v('product-type'), maker: v('maker'), model: v('model'),
-    serial: v('serial'), refrigerant: v('refrigerant'),
+    serial: v('serial'), refrigerant: v('refrigerant') === 'その他' ? v('refrigerant-other') : v('refrigerant'),
     refShip: vn('ref-ship'), refAdd: vn('ref-add'), refRecover: vn('ref-recover'), refFill: vn('ref-fill'),
     workDate: v('work-date'), workStart: v('work-start'), workEnd: v('work-end'),
     symptom: v('symptom'), cause: v('cause'), workContent: v('work-content'), remarks: v('remarks'),
@@ -210,8 +210,17 @@ window.editReport = function(id) {
   if (!r) return;
   currentReportId = id;
   document.getElementById('form-title').textContent = '点検・作業報告書 — 編集';
-  const map = [['customer-name','customerName'],['address','address'],['requester','requester'],['reception','reception'],['system-name','systemName'],['product-type','productType'],['maker','maker'],['model','model'],['serial','serial'],['refrigerant','refrigerant'],['ref-ship','refShip'],['ref-add','refAdd'],['ref-recover','refRecover'],['ref-fill','refFill'],['work-date','workDate'],['work-start','workStart'],['work-end','workEnd'],['symptom','symptom'],['cause','cause'],['work-content','workContent'],['remarks','remarks'],['temp-indoor-in','tempIndoorIn'],['temp-indoor-out','tempIndoorOut'],['press-discharge','pressDischarge'],['press-suction','pressSuction'],['temp-discharge','tempDischarge'],['temp-suction','tempSuction'],['temp-outdoor','tempOutdoor'],['current','current'],['status','status'],['worker','worker']];
+  const map = [['customer-name','customerName'],['address','address'],['requester','requester'],['reception','reception'],['system-name','systemName'],['product-type','productType'],['maker','maker'],['model','model'],['serial','serial'],['ref-ship','refShip'],['ref-add','refAdd'],['ref-recover','refRecover'],['ref-fill','refFill'],['work-date','workDate'],['work-start','workStart'],['work-end','workEnd'],['symptom','symptom'],['cause','cause'],['work-content','workContent'],['remarks','remarks'],['temp-indoor-in','tempIndoorIn'],['temp-indoor-out','tempIndoorOut'],['press-discharge','pressDischarge'],['press-suction','pressSuction'],['temp-discharge','tempDischarge'],['temp-suction','tempSuction'],['temp-outdoor','tempOutdoor'],['current','current'],['status','status'],['worker','worker']];
   map.forEach(([fid, key]) => setv(fid, r[key]));
+  const refSel = document.getElementById('refrigerant');
+  const refOther = document.getElementById('refrigerant-other');
+  const refVal = r.refrigerant || '';
+  const knownRef = ['R-32','R-410A','R-407C','R-22','R-404A','R-134a'];
+  if (refVal && !knownRef.includes(refVal)) {
+    refSel.value = 'その他'; refOther.value = refVal; refOther.style.display = '';
+  } else {
+    refSel.value = refVal; refOther.value = ''; refOther.style.display = 'none';
+  }
   const pl = document.getElementById('parts-list'); pl.innerHTML = '';
   (r.parts && r.parts.length ? r.parts : [{}]).forEach(p => addPartRow(p));
 
@@ -246,6 +255,7 @@ function resetForm() {
   document.getElementById('parts-list').innerHTML = '';
   addPartRow();
   clearSignInputDisplay();
+  document.getElementById('refrigerant-other').style.display = 'none';
 }
 
 window.addPartRow = function(data) {

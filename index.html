@@ -7,9 +7,22 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/sign-additions.css">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-<div class="app">
+
+<!-- Login Overlay -->
+<div id="login-overlay" class="login-overlay">
+  <div class="login-card">
+    <div class="login-logo"><span class="brand-icon">❄</span> シオンテクノス</div>
+    <p class="login-sub">空調機器 点検・作業報告システム</p>
+    <div id="g_id_signin" class="login-gbtn"></div>
+    <p id="login-error" class="login-error" style="display:none"></p>
+  </div>
+</div>
+
+<div class="app" id="app-root" style="display:none">
+
 
   <!-- Header -->
   <header class="header">
@@ -24,6 +37,11 @@
       <nav class="nav">
         <button class="nav-btn active" data-view="list" onclick="showView('list')">履歴一覧</button>
         <button class="nav-btn" data-view="form" onclick="showView('form')">新規報告書</button>
+        <div class="user-badge">
+          <img id="logged-in-avatar" src="" alt="" class="user-avatar" onerror="this.style.display='none'">
+          <span id="logged-in-name" class="user-name"></span>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="logout()">ログアウト</button>
+        </div>
       </nav>
     </div>
   </header>
@@ -230,6 +248,7 @@
 </div>
 
 <script src="js/config.js"></script>
+<script src="js/auth.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

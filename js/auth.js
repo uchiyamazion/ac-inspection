@@ -10,14 +10,18 @@ async function authGasCall(params) {
   return json.data;
 }
 
+let authStarted = false;
+
 function initGoogleAuth(retryCount) {
   retryCount = retryCount || 0;
+  if (authStarted) return; // onloadとDOMContentLoadedの両方から呼ばれても二重初期化しない
   const saved = sessionStorage.getItem('authUser');
   if (saved) {
     try {
+      authStarted = true;
       showApp(JSON.parse(saved));
       return;
-    } catch (e) { sessionStorage.removeItem('authUser'); }
+    } catch (e) { sessionStorage.removeItem('authUser'); authStarted = false; }
   }
 
   if (!GOOGLE_CLIENT_ID) {
@@ -25,14 +29,17 @@ function initGoogleAuth(retryCount) {
     return;
   }
   if (typeof google === 'undefined' || !google.accounts) {
-    // Googleのスクリプトが非同期で読み込み中の場合があるので、少し待って再試行する
-    if (retryCount < 25) {
+    // Googleのスクリプトが非同期で読み込み中の場合があるので、少し待って再試行する（最大60秒）
+    if (retryCount < 300) {
       setTimeout(() => initGoogleAuth(retryCount + 1), 200);
       return;
     }
     showLoginError('Googleログインの読み込みに失敗しました。広告/トラッキングブロッカーをご利用の場合は無効にして再読み込みしてください。');
     return;
   }
+
+  authStarted = true;
+  document.getElementById('login-error').style.display = 'none';
 
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,

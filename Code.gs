@@ -226,6 +226,13 @@ function authorizeApp() {
   SpreadsheetApp.getActiveSpreadsheet();
 }
 
+// 外部通信(UrlFetchApp)の権限を承認させるための関数。
+// Apps Scriptエディタの関数選択で「authorizeExternalRequest」を選び、実行ボタンを押してください。
+// 承認ダイアログが出たら許可してください（その後はWebアプリ側でも自動的に使えるようになります）。
+function authorizeExternalRequest() {
+  UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=dummy', { muteHttpExceptions: true });
+}
+
 // ===== Googleログイン・ユーザー管理 =====
 
 // フロントから送られたGoogleのID Tokenを検証し、本人確認済みのpayload(email/name/picture)を返す

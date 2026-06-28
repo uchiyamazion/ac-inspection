@@ -14,5 +14,6 @@ const ALLOWED_DOMAIN = '';
 // 個別にアクセスを許可するメールアドレス（ALLOWED_DOMAINと併用可）。両方空の場合は誰でもログイン可能になります。
 const ALLOWED_EMAILS = [
   'uchiyama@zion.co.jp',
+  'uchiyamazion@gmail.com',
 ];
 

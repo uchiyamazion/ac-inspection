@@ -60,10 +60,10 @@ body {
   align-items: center;
   gap: 12px;
 }
-.brand-icon {
-  font-size: 28px;
-  color: var(--primary);
-  filter: drop-shadow(0 0 8px rgba(0,102,204,0.3));
+.brand-icon-img {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 .brand-name {
   font-size: 15px;
@@ -459,11 +459,18 @@ body {
   text-align: center;
 }
 .login-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   font-size: 19px;
   font-weight: 700;
   color: var(--primary);
   letter-spacing: 0.05em;
   margin-bottom: 6px;
+}
+.login-logo .brand-icon-img {
+  height: 36px;
 }
 .login-sub {
   font-size: 12.5px;

@@ -1,4 +1,12 @@
 const SHEET_NAME = '点検報告';
+const USERS_SHEET_NAME = 'Users';
+
+// フロントエンドのjs/config.jsと同じGoogle OAuthクライアントID（トークン検証用）
+const GOOGLE_CLIENT_ID = '782190614995-5d4fur401smd1gpnnvs43h3m2q2q2ar3.apps.googleusercontent.com';
+
+// 初回のみ：Usersシートが存在しない場合にここに記載のアドレスを管理者として登録する
+const INITIAL_ADMINS = ['uchiyama@zion.co.jp', 'uchiyamazion@gmail.com'];
+
 
 const COLUMNS = [
   'id', 'customerName', 'address', 'requester', 'reception',
@@ -30,6 +38,10 @@ function doGet(e) {
     if (action === 'create') return makeRes(createRecord(JSON.parse(decodeURIComponent(p.data))));
     if (action === 'update') return makeRes(updateRecord(p.id, JSON.parse(decodeURIComponent(p.data))));
     if (action === 'delete') return makeRes(deleteRecord(p.id));
+    if (action === 'checkAccess') return makeRes(checkAccess(p.idToken));
+    if (action === 'listUsers')   return makeRes(adminListUsers(p.idToken));
+    if (action === 'addUser')    return makeRes(adminAddUser(p.idToken, p.email, p.name, p.role));
+    if (action === 'removeUser') return makeRes(adminRemoveUser(p.idToken, p.email));
     return makeRes({ message: '不明なaction' }, 'error');
   } catch (err) {
     return makeRes({ message: err.message }, 'error');
@@ -212,4 +224,118 @@ function authorizeApp() {
   DriveApp.getFolders();
   DriveApp.createFolder('__auth_test_delete_me__').setTrashed(true);
   SpreadsheetApp.getActiveSpreadsheet();
+}
+
+// ===== Googleログイン・ユーザー管理 =====
+
+// フロントから送られたGoogleのID Tokenを検証し、本人確認済みのpayload(email/name/picture)を返す
+function verifyIdToken(idToken) {
+  if (!idToken) throw new Error('idTokenが指定されていません');
+  const res = UrlFetchApp.fetch(
+    'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken),
+    { muteHttpExceptions: true }
+  );
+  if (res.getResponseCode() !== 200) throw new Error('トークンの検証に失敗しました（期限切れの可能性があります。再読み込みしてください）');
+  const payload = JSON.parse(res.getContentText());
+  if (payload.aud !== GOOGLE_CLIENT_ID) throw new Error('トークンの検証に失敗しました（クライアントIDが一致しません）');
+  return payload;
+}
+
+function getUsersSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(USERS_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(USERS_SHEET_NAME);
+    sheet.appendRow(['email', 'name', 'role', 'addedAt']);
+    const hr = sheet.getRange(1, 1, 1, 4);
+    hr.setBackground('#0066cc');
+    hr.setFontColor('white');
+    hr.setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    const now = new Date().toISOString();
+    INITIAL_ADMINS.forEach(email => {
+      sheet.appendRow([email.toLowerCase(), '', 'admin', now]);
+    });
+  }
+  return sheet;
+}
+
+function listUsersRaw() {
+  const sheet = getUsersSheet();
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return [];
+  return rows.slice(1)
+    .filter(r => r[0])
+    .map(r => ({ email: String(r[0]).toLowerCase(), name: r[1] || '', role: r[2] || 'user', addedAt: r[3] || '' }));
+}
+
+function findUserByEmail(email) {
+  const target = (email || '').toLowerCase();
+  return listUsersRaw().find(u => u.email === target) || null;
+}
+
+function requireAdmin(email) {
+  const user = findUserByEmail(email);
+  if (!user || user.role !== 'admin') throw new Error('管理者権限が必要です');
+  return user;
+}
+
+// ログイン時のアクセス確認。idTokenはGoogleログイン直後に取得した本人確認済みトークン。
+function checkAccess(idToken) {
+  const payload = verifyIdToken(idToken);
+  const email = (payload.email || '').toLowerCase();
+  const user = findUserByEmail(email);
+  return {
+    allowed: !!user,
+    isAdmin: !!(user && user.role === 'admin'),
+    email: payload.email,
+    name: payload.name || (user && user.name) || '',
+    picture: payload.picture || ''
+  };
+}
+
+function adminListUsers(idToken) {
+  const payload = verifyIdToken(idToken);
+  requireAdmin(payload.email);
+  return listUsersRaw();
+}
+
+function adminAddUser(idToken, email, name, role) {
+  const payload = verifyIdToken(idToken);
+  requireAdmin(payload.email);
+  if (!email) throw new Error('メールアドレスを入力してください');
+  const sheet = getUsersSheet();
+  const rows = sheet.getDataRange().getValues();
+  const target = email.toLowerCase();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).toLowerCase() === target) {
+      // 既存ユーザーは情報を更新
+      sheet.getRange(i + 1, 2).setValue(name || rows[i][1] || '');
+      sheet.getRange(i + 1, 3).setValue(role === 'admin' ? 'admin' : 'user');
+      return listUsersRaw();
+    }
+  }
+  sheet.appendRow([target, name || '', role === 'admin' ? 'admin' : 'user', new Date().toISOString()]);
+  return listUsersRaw();
+}
+
+function adminRemoveUser(idToken, email) {
+  const payload = verifyIdToken(idToken);
+  requireAdmin(payload.email);
+  const target = (email || '').toLowerCase();
+  const users = listUsersRaw();
+  const targetUser = users.find(u => u.email === target);
+  if (targetUser && targetUser.role === 'admin') {
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    if (adminCount <= 1) throw new Error('最後の管理者は削除できません');
+  }
+  const sheet = getUsersSheet();
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).toLowerCase() === target) {
+      sheet.deleteRow(i + 1);
+      return listUsersRaw();
+    }
+  }
+  throw new Error('ユーザーが見つかりません');
 }

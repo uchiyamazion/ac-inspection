@@ -37,6 +37,7 @@
       <nav class="nav">
         <button class="nav-btn active" data-view="list" onclick="showView('list')">履歴一覧</button>
         <button class="nav-btn" data-view="form" onclick="showView('form')">新規報告書</button>
+        <button id="admin-nav-btn" class="nav-btn" onclick="openUsersModal()" style="display:none">ユーザー管理</button>
         <div class="user-badge">
           <img id="logged-in-avatar" src="" alt="" class="user-avatar" onerror="this.style.display='none'">
           <span id="logged-in-name" class="user-name"></span>
@@ -240,6 +241,29 @@
         <button class="btn btn-ghost" onclick="closeModal()">閉じる</button>
         <button class="btn btn-secondary" id="print-btn" onclick="openPrint()">🖨 PDF出力</button>
         <button class="btn btn-primary" id="edit-btn" onclick="editCurrentReport()">編集</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin: User Management Modal -->
+  <div id="users-modal" class="modal-overlay" onclick="closeUsersModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>ユーザー管理（ログイン許可リスト）</h3>
+        <button class="modal-close" onclick="closeUsersModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="users-list" class="users-list"></div>
+        <div class="users-add-row">
+          <input type="email" id="new-user-email" class="form-input" placeholder="メールアドレス">
+          <input type="text" id="new-user-name" class="form-input" placeholder="名前（任意）">
+          <label class="users-admin-check"><input type="checkbox" id="new-user-admin"> 管理者</label>
+          <button class="btn btn-primary btn-sm" onclick="addUserFromModal()">追加</button>
+        </div>
+        <p id="users-error" class="login-error" style="display:none"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeUsersModal()">閉じる</button>
       </div>
     </div>
   </div>

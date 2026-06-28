@@ -1,7 +1,8 @@
 // Googleアカウントでのログイン処理
 // セッション中のみ有効（タブを閉じる/ブラウザを終了すると再ログインが必要）
 
-function initGoogleAuth() {
+function initGoogleAuth(retryCount) {
+  retryCount = retryCount || 0;
   const saved = sessionStorage.getItem('authUser');
   if (saved) {
     try {
@@ -15,7 +16,12 @@ function initGoogleAuth() {
     return;
   }
   if (typeof google === 'undefined' || !google.accounts) {
-    showLoginError('Googleログインの読み込みに失敗しました。通信環境を確認してください。');
+    // Googleのスクリプトが非同期で読み込み中の場合があるので、少し待って再試行する
+    if (retryCount < 25) {
+      setTimeout(() => initGoogleAuth(retryCount + 1), 200);
+      return;
+    }
+    showLoginError('Googleログインの読み込みに失敗しました。広告/トラッキングブロッカーをご利用の場合は無効にして再読み込みしてください。');
     return;
   }
 

@@ -59,6 +59,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 .brand-icon-img {
   height: 32px;
@@ -79,7 +80,13 @@ body {
 .nav {
   display: flex;
   gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.nav::-webkit-scrollbar { display: none; }
 .nav-btn {
   padding: 8px 18px;
   border: 1.5px solid var(--border);
@@ -91,6 +98,8 @@ body {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .nav-btn:hover { border-color: var(--primary); color: var(--primary); }
 .nav-btn.active {
@@ -418,8 +427,12 @@ body {
 
 /* ===== スマホ対応 ===== */
 @media (max-width: 600px) {
-  .header-inner { padding: 0 12px; }
+  .header-inner { padding: 0 12px; gap: 8px; }
   .brand-sub { display: none; }
+  .brand-name { font-size: 13px; }
+  .nav-btn { padding: 7px 12px; font-size: 12px; }
+  .header-inner > .btn,
+  .header-inner button:not(.nav-btn) { flex-shrink: 0; padding: 7px 10px; font-size: 12px; white-space: nowrap; }
   .container { padding: 0 12px; }
   .view { padding: 16px 0 48px; }
   .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }

@@ -36,7 +36,8 @@
   max-height: 44px;
   max-width: 100%;
   display: none;
-  filter: contrast(2.2) brightness(0.7);
+  filter: contrast(3);
+  mix-blend-mode: multiply;
 }
 .sign-canvas-area.signed {
   background: #fff;

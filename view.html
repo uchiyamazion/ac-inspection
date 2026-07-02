@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=820, initial-scale=0.45, maximum-scale=2.0, user-scalable=yes">
 <title>点検・作業報告書｜シオンテクノス</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size: 11px; background: #999; color: #000; }
@@ -134,8 +135,8 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 <body>
 
 <div class="ctrl-bar">
-  <button class="cb cb-p" onclick="window.print()">🖨 PDF保存</button>
-  <span class="ctrl-note">シオンテクノス株式会社　点検・作業報告書</span>
+  <button class="cb cb-p" id="pdf-btn" onclick="downloadPDF()">📥 PDF保存</button>
+  <span class="ctrl-note" id="pdf-status">シオンテクノス株式会社　点検・作業報告書</span>
 </div>
 
 <div id="loading" class="loading">読み込み中…</div>
@@ -396,6 +397,41 @@ async function loadReport() {
 }
 
 loadReport();
+
+function downloadPDF() {
+  const btn = document.getElementById('pdf-btn');
+  const status = document.getElementById('pdf-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ 生成中…';
+  status.textContent = 'しばらくお待ちください';
+
+  // ファイル名を「報告書_お客様名_作業日.pdf」に
+  const custName = document.getElementById('p-customerName').textContent || '報告書';
+  const wy = document.getElementById('p-wy').textContent;
+  const wm = document.getElementById('p-wm').textContent;
+  const wd = document.getElementById('p-wd').textContent;
+  const dateStr = (wy && wm && wd) ? wy+wm.padStart(2,'0')+wd.padStart(2,'0') : 'date';
+  const fileName = '点検作業報告書_' + custName + '_' + dateStr + '.pdf';
+
+  const el = document.getElementById('report');
+  const opt = {
+    margin: [8, 8, 8, 8],
+    filename: fileName,
+    image: { type: 'jpeg', quality: 0.97 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(el).save().then(() => {
+    btn.disabled = false;
+    btn.textContent = '📥 PDF保存';
+    status.textContent = 'シオンテクノス株式会社　点検・作業報告書';
+  }).catch(() => {
+    btn.disabled = false;
+    btn.textContent = '📥 PDF保存';
+    status.textContent = '⚠️ PDF生成に失敗しました';
+  });
+}
 </script>
 </body>
 </html>

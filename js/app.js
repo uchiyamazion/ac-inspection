@@ -102,7 +102,7 @@ function compressSign(srcDataUrl, maxW, maxH, quality) {
       const px = imgData.data;
       for (let i = 0; i < px.length; i += 4) {
         const gray = (px[i] + px[i+1] + px[i+2]) / 3;
-        const factor = gray < 200 ? 0.35 : 1;
+        const factor = gray < 220 ? 0.2 : 1;
         px[i] = px[i+1] = px[i+2] = Math.max(0, gray * factor);
       }
       ctx.putImageData(imgData, 0, 0);
@@ -128,7 +128,7 @@ window.saveReport = async function(e) {
 
     if (currentSignDataUrl && savedId) {
       try {
-        const compressed = await compressSign(currentSignDataUrl, 300, 100, 0.7);
+        const compressed = await compressSign(currentSignDataUrl, 300, 100, 0.92);
         const base64only = compressed.replace(/^data:image\/jpeg;base64,/, '');
         await gasCall({ action: 'saveSign', id: savedId, signData: base64only });
       } catch (signErr) {
@@ -326,7 +326,7 @@ function resizePadCanvas() {
   padCanvas.height = padCanvas.offsetHeight * dpr;
   padCtx.scale(dpr, dpr);
   padCtx.strokeStyle = '#000';
-  padCtx.lineWidth = 4;
+  padCtx.lineWidth = 6;
   padCtx.lineCap = 'round';
   padCtx.lineJoin = 'round';
 }

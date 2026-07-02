@@ -17,7 +17,7 @@
 .sign-canvas-area {
   flex: 1;
   min-width: 200px;
-  height: 70px;
+  height: 50px;
   border: 1.5px dashed var(--border, #d1dde8);
   background: var(--bg, #f7fafc);
   border-radius: 8px;
@@ -33,10 +33,10 @@
   background: var(--primary-light, #e6f0fb);
 }
 .sign-canvas-area img {
-  max-height: 64px;
+  max-height: 44px;
   max-width: 100%;
   display: none;
-  filter: contrast(1.8);
+  filter: contrast(2.2) brightness(0.7);
 }
 .sign-canvas-area.signed {
   background: #fff;

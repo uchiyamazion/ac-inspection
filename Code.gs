@@ -1,50 +1,42 @@
-const SHEET_NAME = '点検報告';
-const USERS_SHEET_NAME = 'Users';
+/**
+ * シオンテクノス株式会社
+ * 統合GAS - 空調点検報告 + フロン管理システム
+ * スプレッドシート: 自社案件SPS
+ */
 
-// フロントエンドのjs/config.jsと同じGoogle OAuthクライアントID（トークン検証用）
-const GOOGLE_CLIENT_ID = '782190614995-5d4fur401smd1gpnnvs43h3m2q2q2ar3.apps.googleusercontent.com';
-
-// 初回のみ：Usersシートが存在しない場合にここに記載のアドレスを管理者として登録する
-const INITIAL_ADMINS = ['uchiyama@zion.co.jp', 'uchiyamazion@gmail.com'];
-
-
-const COLUMNS = [
-  'id', 'customerName', 'address', 'requester', 'reception',
-  'systemName', 'productType', 'maker', 'model', 'serial', 'refrigerant',
-  'refShip', 'refAdd', 'refRecover', 'refFill',
-  'workDate', 'workStart', 'workEnd',
-  'symptom', 'cause', 'workContent', 'remarks',
-  'tempIndoorIn', 'tempIndoorOut', 'pressDischarge', 'pressSuction',
-  'tempDischarge', 'tempSuction', 'tempOutdoor', 'current',
-  'parts',
-  'status', 'worker',
-  'createdAt', 'updatedAt', 'customerSign'
-];
+const SS = () => SpreadsheetApp.getActiveSpreadsheet();
+const sheet = (name) => SS().getSheetByName(name);
 
 function makeRes(data, status) {
-  const payload = JSON.stringify({ status: status || 'ok', data: data });
-  return ContentService
-    .createTextOutput(payload)
+  status = status || 'success';
+  const payload = JSON.stringify({ status, data });
+  return ContentService.createTextOutput(payload)
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+function makeErr(msg) {
+  return makeRes(msg, 'error');
+}
+
+// ════════════════════════════════════════════════
+// doGet / doPost ルーター
+// ════════════════════════════════════════════════
+
 function doGet(e) {
-  const p = e.parameter;
   try {
+    const p = e.parameter || {};
     const action = p.action || 'list';
-    if (action === 'list')   return makeRes(listRecords());
-    if (action === 'get')    return makeRes(getRecord(p.id));
-    if (action === 'saveSign') return makeRes(saveSignImage(p.id, p.signData, 'jpeg'));
-    if (action === 'create') return makeRes(createRecord(JSON.parse(decodeURIComponent(p.data))));
-    if (action === 'update') return makeRes(updateRecord(p.id, JSON.parse(decodeURIComponent(p.data))));
-    if (action === 'delete') return makeRes(deleteRecord(p.id));
-    if (action === 'checkAccess') return makeRes(checkAccess(p.idToken));
-    if (action === 'listUsers')   return makeRes(adminListUsers(p.idToken));
-    if (action === 'addUser')    return makeRes(adminAddUser(p.idToken, p.email, p.name, p.role));
-    if (action === 'removeUser') return makeRes(adminRemoveUser(p.idToken, p.email));
-    return makeRes({ message: '不明なaction' }, 'error');
-  } catch (err) {
-    return makeRes({ message: err.message }, 'error');
+    switch (action) {
+      case 'list':        return acList();
+      case 'fron_load':   return fronLoad();
+      case 'eq_list':     return eqList();
+      case 'eq_search':   return eqSearch(p.q || '');
+      case 'fill_list':   return fillList(p.eqId, p.year);
+      case 'leak_summary':return leakSummary(p.year);
+      default:            return makeErr('不明なaction: ' + action);
+    }
+  } catch(err) {
+    return makeErr(err.toString());
   }
 }
 
@@ -52,297 +44,359 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     const action = body.action;
-    if (action === 'saveSign') return makeRes(saveSignImage(body.id, body.signData));
-    if (action === 'update') return makeRes(updateRecord(body.id, body.data));
-    if (action === 'create') return makeRes(createRecord(body.data));
-    if (action === 'delete') return makeRes(deleteRecord(body.id));
-    return makeRes({ message: '不明なaction' }, 'error');
-  } catch (err) {
-    return makeRes({ message: err.message }, 'error');
-  }
-}
+    const payload = body.payload || body;
 
-function listRecords() {
-  const sheet = getSheet();
-  const rows = sheet.getDataRange().getValues();
-  if (rows.length <= 1) return [];
-  const headers = rows[0];
-  const records = rows.slice(1).map(row => rowToObj(headers, row));
-  records.sort((a, b) => {
-    const da = a.workDate ? new Date(a.workDate).getTime() : 0;
-    const db = b.workDate ? new Date(b.workDate).getTime() : 0;
-    return db - da;
-  });
-  return records;
-}
+    switch (action) {
+      // ── ac-inspection ──
+      case 'create':      return acCreate(payload);
+      case 'update':      return acUpdate(payload);
+      case 'saveSign':    return acSaveSign(payload);
+      case 'delete':      return acDelete(payload);
 
-function getRecord(id) {
-  const sheet = getSheet();
-  const rows = sheet.getDataRange().getValues();
-  if (rows.length <= 1) return null;
-  const headers = rows[0];
-  const idCol = headers.indexOf('id');
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i][idCol] === id) return rowToObj(headers, rows[i]);
-  }
-  return null;
-}
+      // ── フロン管理 ──
+      case 'fron_save':   return fronSave(payload);
+      case 'eq_upsert':   return eqUpsert(payload.data || payload);
+      case 'eq_delete':   return eqDelete(payload.id || payload);
+      case 'fill_create': return fillCreate(payload.data || payload);
+      case 'fill_delete': return fillDelete(payload.id || payload);
+      case 'legal_create':return legalCreate(payload.data || payload);
+      case 'legal_delete':return legalDelete(payload.id || payload);
 
-function rowToObj(headers, row) {
-  const obj = {};
-  headers.forEach((h, i) => {
-    const val = row[i];
-    if (val instanceof Date) {
-      if (h === 'workStart' || h === 'workEnd') {
-        obj[h] = Utilities.formatDate(val, 'Asia/Tokyo', 'HH:mm');
-        if (obj[h] === '00:00') obj[h] = '';
-      } else {
-        obj[h] = Utilities.formatDate(val, 'Asia/Tokyo', 'yyyy-MM-dd');
-      }
-    } else {
-      obj[h] = val;
+      default:            return makeErr('不明なaction: ' + action);
     }
-  });
-  if (obj.parts && typeof obj.parts === 'string') {
-    try { obj.parts = JSON.parse(obj.parts); } catch(e) { obj.parts = []; }
+  } catch(err) {
+    return makeErr(err.toString());
   }
-  return obj;
 }
 
-function createRecord(data) {
-  const sheet = getSheet();
-  const id = Utilities.getUuid();
-  const now = new Date().toISOString();
-  const row = COLUMNS.map(col => {
-    if (col === 'id') return id;
-    if (col === 'createdAt' || col === 'updatedAt') return now;
-    if (col === 'parts') return JSON.stringify(data.parts || []);
-    return data[col] !== undefined ? data[col] : '';
+// ════════════════════════════════════════════════
+// ac-inspection: 点検報告
+// ════════════════════════════════════════════════
+
+function sheetToObjects(sh) {
+  const vals = sh.getDataRange().getValues();
+  if (vals.length < 2) return [];
+  const headers = vals[0];
+  return vals.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i]; });
+    return obj;
   });
-  sheet.appendRow(row);
-  return { id };
 }
 
-function updateRecord(id, data) {
-  const sheet = getSheet();
-  const rows = sheet.getDataRange().getValues();
-  const headers = rows[0];
+function acList() {
+  const sh = sheet('点検報告');
+  if (!sh) return makeErr('点検報告シートが見つかりません');
+  return makeRes(sheetToObjects(sh));
+}
+
+function acCreate(data) {
+  const sh = sheet('点検報告');
+  if (!sh) return makeErr('点検報告シートが見つかりません');
+
+  const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const id = 'acc' + Utilities.getUuid().replace(/-/g,'').slice(0,12);
+  const now = new Date();
+
+  // dataにidとcreatedAtを付与
+  data.id = id;
+  data.createdAt = now;
+  data.updatedAt = now;
+
+  const row = headers.map(h => (data[h] !== undefined ? data[h] : ''));
+  sh.appendRow(row);
+
+  // 充填・回収記録へ自動転記
+  autoTransferRefrigerant(data, id);
+
+  return makeRes({ id });
+}
+
+function acUpdate(data) {
+  const sh = sheet('点検報告');
+  if (!sh) return makeErr('点検報告シートが見つかりません');
+
+  const vals = sh.getDataRange().getValues();
+  const headers = vals[0];
   const idCol = headers.indexOf('id');
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i][idCol] === id) {
-      const now = new Date().toISOString();
-      COLUMNS.forEach((col, j) => {
-        if (col === 'id' || col === 'createdAt') return;
-        if (col === 'updatedAt') { sheet.getRange(i+1, j+1).setValue(now); return; }
-        if (col === 'parts') { sheet.getRange(i+1, j+1).setValue(JSON.stringify(data.parts || [])); return; }
-        if (data[col] !== undefined) sheet.getRange(i+1, j+1).setValue(data[col]);
-      });
-      return { id };
+  if (idCol < 0) return makeErr('idカラムが見つかりません');
+
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][idCol] == data.id) {
+      data.updatedAt = new Date();
+      const row = headers.map(h => (data[h] !== undefined ? data[h] : vals[i][headers.indexOf(h)]));
+      sh.getRange(i + 1, 1, 1, headers.length).setValues([row]);
+      autoTransferRefrigerant(data, data.id);
+      return makeRes({ id: data.id });
     }
   }
-  throw new Error('レコードが見つかりません');
+  return makeErr('対象レコードが見つかりません: ' + data.id);
 }
 
-function deleteRecord(id) {
-  const sheet = getSheet();
-  const rows = sheet.getDataRange().getValues();
-  const headers = rows[0];
+function acSaveSign(payload) {
+  const sh = sheet('点検報告');
+  if (!sh) return makeErr('点検報告シートが見つかりません');
+
+  const vals = sh.getDataRange().getValues();
+  const headers = vals[0];
   const idCol = headers.indexOf('id');
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i][idCol] === id) { sheet.deleteRow(i+1); return { id }; }
-  }
-  throw new Error('レコードが見つかりません');
-}
+  const signCol = headers.indexOf('signData');
+  if (idCol < 0 || signCol < 0) return makeErr('カラムが見つかりません');
 
-function getSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow(COLUMNS);
-    const hr = sheet.getRange(1, 1, 1, COLUMNS.length);
-    hr.setBackground('#0066cc');
-    hr.setFontColor('white');
-    hr.setFontWeight('bold');
-    sheet.setFrozenRows(1);
-  }
-  return sheet;
-}
-
-// ===== Google Driveにサイン画像を保存 =====
-function saveSignImage(reportId, base64Data, imgType) {
-  imgType = imgType || 'png';
-  const mimeType = imgType === 'jpeg' ? 'image/jpeg' : 'image/png';
-  const ext = imgType === 'jpeg' ? 'jpg' : 'png';
-  const base64 = base64Data.replace(/^data:image\/(png|jpeg);base64,/, '');
-  const blob = Utilities.newBlob(
-    Utilities.base64Decode(base64),
-    mimeType,
-    'sign_' + reportId + '.' + ext
-  );
-
-  const folderName = '点検報告_サイン';
-  let folder;
-  const folders = DriveApp.getFoldersByName(folderName);
-  if (folders.hasNext()) {
-    folder = folders.next();
-  } else {
-    folder = DriveApp.createFolder(folderName);
-  }
-
-  ['png', 'jpg'].forEach(e => {
-    const existing = folder.getFilesByName('sign_' + reportId + '.' + e);
-    while (existing.hasNext()) existing.next().setTrashed(true);
-  });
-
-  const file = folder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  const fileId = file.getId();
-  const imageUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
-
-  updateSignUrl(reportId, imageUrl);
-
-  return { imageUrl, fileId };
-}
-
-function updateSignUrl(reportId, imageUrl) {
-  const sheet = getSheet();
-  const rows = sheet.getDataRange().getValues();
-  const headers = rows[0];
-  const idCol = headers.indexOf('id');
-  const signCol = headers.indexOf('customerSign');
-  if (signCol === -1) return;
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i][idCol] === reportId) {
-      sheet.getRange(i + 1, signCol + 1).setValue(imageUrl);
-      return;
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][idCol] == payload.id) {
+      sh.getRange(i + 1, signCol + 1).setValue(payload.signData);
+      return makeRes({ id: payload.id });
     }
   }
+  return makeErr('対象レコードが見つかりません: ' + payload.id);
 }
 
-function authorizeApp() {
-  DriveApp.getFolders();
-  DriveApp.createFolder('__auth_test_delete_me__').setTrashed(true);
-  SpreadsheetApp.getActiveSpreadsheet();
-}
+function acDelete(payload) {
+  const sh = sheet('点検報告');
+  if (!sh) return makeErr('点検報告シートが見つかりません');
 
-// 外部通信(UrlFetchApp)の権限を承認させるための関数。
-// Apps Scriptエディタの関数選択で「authorizeExternalRequest」を選び、実行ボタンを押してください。
-// 承認ダイアログが出たら許可してください（その後はWebアプリ側でも自動的に使えるようになります）。
-function authorizeExternalRequest() {
-  UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=dummy', { muteHttpExceptions: true });
-}
+  const vals = sh.getDataRange().getValues();
+  const headers = vals[0];
+  const idCol = headers.indexOf('id');
 
-// ===== Googleログイン・ユーザー管理 =====
-
-// フロントから送られたGoogleのID Tokenを検証し、本人確認済みのpayload(email/name/picture)を返す
-function verifyIdToken(idToken) {
-  if (!idToken) throw new Error('idTokenが指定されていません');
-  const res = UrlFetchApp.fetch(
-    'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken),
-    { muteHttpExceptions: true }
-  );
-  if (res.getResponseCode() !== 200) throw new Error('トークンの検証に失敗しました（期限切れの可能性があります。再読み込みしてください）');
-  const payload = JSON.parse(res.getContentText());
-  if (payload.aud !== GOOGLE_CLIENT_ID) throw new Error('トークンの検証に失敗しました（クライアントIDが一致しません）');
-  return payload;
-}
-
-function getUsersSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(USERS_SHEET_NAME);
-  if (!sheet) {
-    sheet = ss.insertSheet(USERS_SHEET_NAME);
-    sheet.appendRow(['email', 'name', 'role', 'addedAt']);
-    const hr = sheet.getRange(1, 1, 1, 4);
-    hr.setBackground('#0066cc');
-    hr.setFontColor('white');
-    hr.setFontWeight('bold');
-    sheet.setFrozenRows(1);
-    const now = new Date().toISOString();
-    INITIAL_ADMINS.forEach(email => {
-      sheet.appendRow([email.toLowerCase(), '', 'admin', now]);
-    });
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][idCol] == payload.id) {
+      sh.deleteRow(i + 1);
+      return makeRes({ id: payload.id });
+    }
   }
-  return sheet;
+  return makeErr('対象レコードが見つかりません: ' + payload.id);
 }
 
-function listUsersRaw() {
-  const sheet = getUsersSheet();
-  const rows = sheet.getDataRange().getValues();
-  if (rows.length <= 1) return [];
-  return rows.slice(1)
-    .filter(r => r[0])
-    .map(r => ({ email: String(r[0]).toLowerCase(), name: r[1] || '', role: r[2] || 'user', addedAt: r[3] || '' }));
+// 点検報告の充填・回収をfron側へ自動転記
+function autoTransferRefrigerant(data, reportId) {
+  try {
+    const refAdd = parseFloat(data.refAdd) || 0;
+    const refRecover = parseFloat(data.refRecover) || 0;
+    if (refAdd === 0 && refRecover === 0) return;
+
+    const refrigerant = data.refrigerant || '';
+    const date = data.workDate ? new Date(data.workDate) : new Date();
+    const eqKey = (data.customerName || '') + '|' + (data.systemName || '') + '|' + (data.serial || '');
+    const eqId = findOrCreateEquipment(data);
+
+    const sh = sheet('充填・回収記録');
+    if (!sh) return;
+
+    if (refAdd > 0) {
+      sh.appendRow([
+        Utilities.getUuid(),
+        eqId, date, '充填', refrigerant, refAdd, '', reportId,
+        data.customerName || '', data.systemName || '', new Date()
+      ]);
+    }
+    if (refRecover > 0) {
+      sh.appendRow([
+        Utilities.getUuid(),
+        eqId, date, '回収', refrigerant, refRecover, '', reportId,
+        data.customerName || '', data.systemName || '', new Date()
+      ]);
+    }
+  } catch(e) {
+    Logger.log('autoTransferRefrigerant error: ' + e);
+  }
 }
 
-function findUserByEmail(email) {
-  const target = (email || '').toLowerCase();
-  return listUsersRaw().find(u => u.email === target) || null;
+// 機器マスタから機器を検索または新規作成してIDを返す
+function findOrCreateEquipment(data) {
+  const sh = sheet('機器マスタ');
+  if (!sh) return '';
+
+  const vals = sh.getDataRange().getValues();
+  const headers = vals[0];
+  const nameCol = headers.indexOf('customerName');
+  const sysCol  = headers.indexOf('systemName');
+  const serCol  = headers.indexOf('serial');
+  const idCol   = headers.indexOf('id');
+
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][nameCol] == data.customerName &&
+        vals[i][sysCol]  == data.systemName &&
+        vals[i][serCol]  == data.serial) {
+      return vals[i][idCol];
+    }
+  }
+
+  // 見つからなければ新規作成
+  const newId = 'eq-' + Utilities.getUuid().slice(0, 8);
+  const row = headers.map(h => {
+    if (h === 'id') return newId;
+    if (h === 'customerName') return data.customerName || '';
+    if (h === 'systemName')   return data.systemName || '';
+    if (h === 'serial')       return data.serial || '';
+    if (h === 'refrigerant')  return data.refrigerant || '';
+    if (h === 'createdAt')    return new Date();
+    return '';
+  });
+  sh.appendRow(row);
+  return newId;
 }
 
-function requireAdmin(email) {
-  const user = findUserByEmail(email);
-  if (!user || user.role !== 'admin') throw new Error('管理者権限が必要です');
-  return user;
-}
+// ════════════════════════════════════════════════
+// fron-kanri: データ一括ロード
+// ════════════════════════════════════════════════
 
-// ログイン時のアクセス確認。idTokenはGoogleログイン直後に取得した本人確認済みトークン。
-function checkAccess(idToken) {
-  const payload = verifyIdToken(idToken);
-  const email = (payload.email || '').toLowerCase();
-  const user = findUserByEmail(email);
-  return {
-    allowed: !!user,
-    isAdmin: !!(user && user.role === 'admin'),
-    email: payload.email,
-    name: payload.name || (user && user.name) || '',
-    picture: payload.picture || ''
+function fronLoad() {
+  const result = {
+    equipment:   sheetToObjects(sheet('機器マスタ') || stubSheet()),
+    fills:       sheetToObjects(sheet('充填・回収記録') || stubSheet()),
+    legal:       sheetToObjects(sheet('法定点検記録') || stubSheet()),
+    leakSummary: sheetToObjects(sheet('漏洩量サマリ') || stubSheet()),
+    inspections: sheetToObjects(sheet('点検報告') || stubSheet()),
   };
+  return makeRes(result);
 }
 
-function adminListUsers(idToken) {
-  const payload = verifyIdToken(idToken);
-  requireAdmin(payload.email);
-  return listUsersRaw();
+function fronSave(data) {
+  // fron_saveはバックアップ用（fron_dataシートにJSONで保存）
+  const sh = sheet('fron_data') || SS().insertSheet('fron_data');
+  sh.clearContents();
+  sh.getRange(1,1).setValue(JSON.stringify(data));
+  return makeRes({ saved: true });
 }
 
-function adminAddUser(idToken, email, name, role) {
-  const payload = verifyIdToken(idToken);
-  requireAdmin(payload.email);
-  if (!email) throw new Error('メールアドレスを入力してください');
-  const sheet = getUsersSheet();
-  const rows = sheet.getDataRange().getValues();
-  const target = email.toLowerCase();
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]).toLowerCase() === target) {
-      // 既存ユーザーは情報を更新
-      sheet.getRange(i + 1, 2).setValue(name || rows[i][1] || '');
-      sheet.getRange(i + 1, 3).setValue(role === 'admin' ? 'admin' : 'user');
-      return listUsersRaw();
+// ════════════════════════════════════════════════
+// 機器マスタ CRUD
+// ════════════════════════════════════════════════
+
+function eqList() {
+  const sh = sheet('機器マスタ');
+  if (!sh) return makeRes([]);
+  return makeRes(sheetToObjects(sh));
+}
+
+function eqSearch(q) {
+  const sh = sheet('機器マスタ');
+  if (!sh) return makeRes([]);
+  const all = sheetToObjects(sh);
+  if (!q) return makeRes(all);
+  const lq = q.toLowerCase();
+  return makeRes(all.filter(r =>
+    Object.values(r).some(v => String(v).toLowerCase().includes(lq))
+  ));
+}
+
+function eqUpsert(data) {
+  const sh = sheet('機器マスタ');
+  if (!sh) return makeErr('機器マスタシートが見つかりません');
+
+  const vals = sh.getDataRange().getValues();
+  const headers = vals[0];
+  const idCol = headers.indexOf('id');
+
+  // 既存レコードを探す
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][idCol] == data.id) {
+      data.updatedAt = new Date();
+      const row = headers.map(h => (data[h] !== undefined ? data[h] : vals[i][headers.indexOf(h)]));
+      sh.getRange(i + 1, 1, 1, headers.length).setValues([row]);
+      return makeRes({ id: data.id });
     }
   }
-  sheet.appendRow([target, name || '', role === 'admin' ? 'admin' : 'user', new Date().toISOString()]);
-  return listUsersRaw();
+
+  // 新規追加
+  if (!data.id) data.id = 'eq-' + Utilities.getUuid().slice(0, 8);
+  data.createdAt = new Date();
+  data.updatedAt = new Date();
+  const row = headers.map(h => (data[h] !== undefined ? data[h] : ''));
+  sh.appendRow(row);
+  return makeRes({ id: data.id });
 }
 
-function adminRemoveUser(idToken, email) {
-  const payload = verifyIdToken(idToken);
-  requireAdmin(payload.email);
-  const target = (email || '').toLowerCase();
-  const users = listUsersRaw();
-  const targetUser = users.find(u => u.email === target);
-  if (targetUser && targetUser.role === 'admin') {
-    const adminCount = users.filter(u => u.role === 'admin').length;
-    if (adminCount <= 1) throw new Error('最後の管理者は削除できません');
-  }
-  const sheet = getUsersSheet();
-  const rows = sheet.getDataRange().getValues();
-  for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]).toLowerCase() === target) {
-      sheet.deleteRow(i + 1);
-      return listUsersRaw();
+function eqDelete(id) {
+  const sh = sheet('機器マスタ');
+  if (!sh) return makeErr('機器マスタシートが見つかりません');
+  return deleteRowById(sh, id);
+}
+
+// ════════════════════════════════════════════════
+// 充填・回収記録 CRUD
+// ════════════════════════════════════════════════
+
+function fillList(eqId, year) {
+  const sh = sheet('充填・回収記録');
+  if (!sh) return makeRes([]);
+  let rows = sheetToObjects(sh);
+  if (eqId) rows = rows.filter(r => r.eqId == eqId);
+  if (year)  rows = rows.filter(r => {
+    const d = new Date(r.date || r.workDate);
+    return d.getFullYear() == parseInt(year);
+  });
+  return makeRes(rows);
+}
+
+function fillCreate(data) {
+  const sh = sheet('充填・回収記録');
+  if (!sh) return makeErr('充填・回収記録シートが見つかりません');
+  if (!data.id) data.id = Utilities.getUuid();
+  data.createdAt = new Date();
+  const headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0];
+  sh.appendRow(headers.map(h => data[h] !== undefined ? data[h] : ''));
+  return makeRes({ id: data.id });
+}
+
+function fillDelete(id) {
+  const sh = sheet('充填・回収記録');
+  if (!sh) return makeErr('充填・回収記録シートが見つかりません');
+  return deleteRowById(sh, id);
+}
+
+// ════════════════════════════════════════════════
+// 法定点検記録 CRUD
+// ════════════════════════════════════════════════
+
+function legalCreate(data) {
+  const sh = sheet('法定点検記録');
+  if (!sh) return makeErr('法定点検記録シートが見つかりません');
+  if (!data.id) data.id = Utilities.getUuid();
+  data.createdAt = new Date();
+  const headers = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0];
+  sh.appendRow(headers.map(h => data[h] !== undefined ? data[h] : ''));
+  return makeRes({ id: data.id });
+}
+
+function legalDelete(id) {
+  const sh = sheet('法定点検記録');
+  if (!sh) return makeErr('法定点検記録シートが見つかりません');
+  return deleteRowById(sh, id);
+}
+
+// ════════════════════════════════════════════════
+// 漏洩量サマリ
+// ════════════════════════════════════════════════
+
+function leakSummary(year) {
+  const sh = sheet('漏洩量サマリ');
+  if (!sh) return makeRes([]);
+  let rows = sheetToObjects(sh);
+  if (year) rows = rows.filter(r => r.year == year);
+  return makeRes(rows);
+}
+
+// ════════════════════════════════════════════════
+// 共通ユーティリティ
+// ════════════════════════════════════════════════
+
+function deleteRowById(sh, id) {
+  const vals = sh.getDataRange().getValues();
+  const headers = vals[0];
+  const idCol = headers.indexOf('id');
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][idCol] == id) {
+      sh.deleteRow(i + 1);
+      return makeRes({ id });
     }
   }
-  throw new Error('ユーザーが見つかりません');
+  return makeErr('対象レコードが見つかりません: ' + id);
+}
+
+function stubSheet() {
+  // シートが存在しない場合の空オブジェクト代替
+  return { getDataRange: () => ({ getValues: () => [[]] }) };
 }

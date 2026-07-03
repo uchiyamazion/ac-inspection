@@ -53,7 +53,7 @@ function renderTable(reports) {
   tbody.innerHTML = reports.map(r =>
     '<tr>' +
     '<td style="white-space:nowrap;font-family:var(--mono);font-size:12px">' + formatDate(r.workDate) + '</td>' +
-    '<td><strong>' + esc(r.systemName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.customerName||'') + '</span></td>' +
+    '<td><strong>' + esc(r.customerName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.systemName||'') + '</span></td>' +
     '<td>' + esc(r.maker||'—') + '</td>' +
     '<td style="font-family:var(--mono);font-size:12px">' + esc(r.model||'—') + '</td>' +
     '<td>' + esc(r.refrigerant||'—') + '</td>' +

@@ -176,7 +176,7 @@ window.viewReport = function(id, readOnly) {
     if (!r) { showToast('該当データが見つかりません(id:' + id + ')', 'error'); return; }
     currentReportId = id;
     document.getElementById('modal-title').textContent = formatDate(r.workDate) + ' — ' + (r.systemName || '');
-    const partsHtml = r.parts && r.parts.length
+    const partsHtml = Array.isArray(r.parts) && r.parts.length
       ? '<div class="detail-section"><h4>使用部品</h4><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--primary-light)"><th style="padding:8px;text-align:left">部品名</th><th style="padding:8px">数量</th><th style="padding:8px">単位</th><th style="padding:8px;text-align:left">コード</th></tr></thead><tbody>'
         + r.parts.map(p => '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:8px">' + esc(p.name) + '</td><td style="padding:8px;text-align:center">' + esc(p.qty) + '</td><td style="padding:8px;text-align:center">' + esc(p.unit) + '</td><td style="padding:8px;font-family:var(--mono);font-size:12px">' + esc(p.code) + '</td></tr>').join('')
         + '</tbody></table></div>' : '';
@@ -227,7 +227,7 @@ window.editReport = function(id) {
     refSel.value = refVal; refOther.value = ''; refOther.style.display = 'none';
   }
   const pl = document.getElementById('parts-list'); pl.innerHTML = '';
-  (r.parts && r.parts.length ? r.parts : [{}]).forEach(p => addPartRow(p));
+  (Array.isArray(r.parts) && r.parts.length ? r.parts : [{}]).forEach(p => addPartRow(p));
 
   if (r.customerSign) {
     currentSignDataUrl = r.customerSign;

@@ -79,7 +79,17 @@ function sheetToObjects(sh) {
   const headers = vals[0];
   return vals.slice(1).map(row => {
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = row[i]; });
+    headers.forEach((h, i) => {
+      let v = row[i];
+      if (h === 'parts') {
+        if (typeof v === 'string' && v) {
+          try { v = JSON.parse(v); } catch (e) { v = []; }
+        } else if (!Array.isArray(v)) {
+          v = [];
+        }
+      }
+      obj[h] = v;
+    });
     return obj;
   });
 }
@@ -103,7 +113,10 @@ function acCreate(data) {
   data.createdAt = now;
   data.updatedAt = now;
 
-  const row = headers.map(h => (data[h] !== undefined ? data[h] : ''));
+  const row = headers.map(h => {
+    if (h === 'parts') return JSON.stringify(data.parts || []);
+    return data[h] !== undefined ? data[h] : '';
+  });
   sh.appendRow(row);
 
   // 充填・回収記録へ自動転記
@@ -124,7 +137,10 @@ function acUpdate(data) {
   for (let i = 1; i < vals.length; i++) {
     if (vals[i][idCol] == data.id) {
       data.updatedAt = new Date();
-      const row = headers.map(h => (data[h] !== undefined ? data[h] : vals[i][headers.indexOf(h)]));
+      const row = headers.map(h => {
+        if (h === 'parts') return JSON.stringify(data.parts || []);
+        return data[h] !== undefined ? data[h] : vals[i][headers.indexOf(h)];
+      });
       sh.getRange(i + 1, 1, 1, headers.length).setValues([row]);
       autoTransferRefrigerant(data, data.id);
       return makeRes({ id: data.id });

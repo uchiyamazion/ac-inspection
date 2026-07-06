@@ -33,6 +33,7 @@ function doGet(e) {
       case 'eq_search':   return eqSearch(p.q || '');
       case 'fill_list':   return fillList(p.eqId, p.year);
       case 'leak_summary':return leakSummary(p.year);
+      case 'ky_list':     return kyList();
       default:            return makeErr('不明なaction: ' + action);
     }
   } catch(err) {
@@ -61,6 +62,10 @@ function doPost(e) {
       case 'fill_delete': return fillDelete(payload.id || payload);
       case 'legal_create':return legalCreate(payload.data || payload);
       case 'legal_delete':return legalDelete(payload.id || payload);
+
+      // ── KY(危険予知)活動 ──
+      case 'ky_create':   return kyCreate(payload.data || payload);
+      case 'ky_delete':   return kyDelete(payload.id || payload);
 
       default:            return makeErr('不明なaction: ' + action);
     }
@@ -396,8 +401,64 @@ function leakSummary(year) {
 }
 
 // ════════════════════════════════════════════════
-// 共通ユーティリティ
+// KY(危険予知)活動記録
 // ════════════════════════════════════════════════
+
+const KY_HEADERS = ['id','date','siteName','workContent','workers','hazards','priorityAction','confirmedBy','createdAt'];
+
+function ensureKySheet() {
+  let sh = sheet('KY記録');
+  if (!sh) {
+    sh = SS().insertSheet('KY記録');
+    sh.appendRow(KY_HEADERS);
+  }
+  return sh;
+}
+
+function kyList() {
+  const sh = ensureKySheet();
+  const vals = sh.getDataRange().getValues();
+  if (vals.length < 2) return makeRes([]);
+  const headers = vals[0];
+  const hazardsCol = headers.indexOf('hazards');
+  const rows = vals.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      let v = row[i];
+      if (i === hazardsCol) {
+        if (typeof v === 'string' && v) {
+          try { v = JSON.parse(v); } catch(e){ v = []; }
+        } else if (!Array.isArray(v)) v = [];
+      }
+      obj[h] = v;
+    });
+    return obj;
+  });
+  rows.reverse(); // 新しい記録を先頭に
+  return makeRes(rows);
+}
+
+function kyCreate(data) {
+  const sh = ensureKySheet();
+  const id = 'ky' + Utilities.getUuid().replace(/-/g,'').slice(0,12);
+  data.id = id;
+  data.createdAt = new Date();
+
+  const row = KY_HEADERS.map(h => {
+    if (h === 'hazards') return JSON.stringify(data.hazards || []);
+    if (h === 'workers')  return Array.isArray(data.workers) ? data.workers.join('、') : (data.workers || '');
+    return data[h] !== undefined ? data[h] : '';
+  });
+  sh.appendRow(row);
+  return makeRes({ id });
+}
+
+function kyDelete(id) {
+  const sh = ensureKySheet();
+  return deleteRowById(sh, id);
+}
+
+
 
 function deleteRowById(sh, id) {
   const vals = sh.getDataRange().getValues();

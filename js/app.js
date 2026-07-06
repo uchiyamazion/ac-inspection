@@ -261,9 +261,6 @@ function resetForm() {
   addPartRow();
   clearSignInputDisplay();
   document.getElementById('refrigerant-other').style.display = 'none';
-  if (window.currentUser && window.currentUser.name) {
-    document.getElementById('worker').value = window.currentUser.name;
-  }
 }
 
 window.addPartRow = function(data) {

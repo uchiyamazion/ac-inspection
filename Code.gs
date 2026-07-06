@@ -404,7 +404,7 @@ function leakSummary(year) {
 // KY(危険予知)活動記録
 // ════════════════════════════════════════════════
 
-const KY_HEADERS = ['id','date','siteName','workContent','workers','hazards','priorityAction','confirmedBy','createdAt'];
+const KY_HEADERS = ['id','date','siteName','workContent','workers','workersData','hazards','priorityAction','confirmedBy','confirmedBySignature','createdAt'];
 
 function ensureKySheet() {
   let sh = sheet('KY記録');
@@ -421,6 +421,7 @@ function kyList() {
   if (vals.length < 2) return makeRes([]);
   const headers = vals[0];
   const hazardsCol = headers.indexOf('hazards');
+  const workersDataCol = headers.indexOf('workersData');
   const rows = vals.slice(1).map(row => {
     const obj = {};
     headers.forEach((h, i) => {
@@ -432,6 +433,17 @@ function kyList() {
       }
       obj[h] = v;
     });
+    // workersData（氏名＋署名の配列）があればそちらを workers として優先返却
+    if (workersDataCol >= 0) {
+      let wd = row[workersDataCol];
+      if (typeof wd === 'string' && wd) {
+        try { wd = JSON.parse(wd); } catch(e){ wd = null; }
+      } else if (!Array.isArray(wd)) {
+        wd = null;
+      }
+      if (wd && wd.length) obj.workers = wd;
+      delete obj.workersData;
+    }
     return obj;
   });
   rows.reverse(); // 新しい記録を先頭に
@@ -444,9 +456,13 @@ function kyCreate(data) {
   data.id = id;
   data.createdAt = new Date();
 
+  const workersArr = Array.isArray(data.workers) ? data.workers : [];
+  const workerNames = workersArr.map(w => (typeof w === 'string' ? w : (w && w.name) || '')).filter(Boolean);
+
   const row = KY_HEADERS.map(h => {
     if (h === 'hazards') return JSON.stringify(data.hazards || []);
-    if (h === 'workers')  return Array.isArray(data.workers) ? data.workers.join('、') : (data.workers || '');
+    if (h === 'workers') return workerNames.join('、');
+    if (h === 'workersData') return JSON.stringify(workersArr);
     return data[h] !== undefined ? data[h] : '';
   });
   sh.appendRow(row);

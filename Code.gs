@@ -34,6 +34,7 @@ function doGet(e) {
       case 'fill_list':   return fillList(p.eqId, p.year);
       case 'leak_summary':return leakSummary(p.year);
       case 'ky_list':     return kyList();
+      case 'ky_get':      return kyGet(p.id);
       default:            return makeErr('不明なaction: ' + action);
     }
   } catch(err) {
@@ -66,6 +67,7 @@ function doPost(e) {
       // ── KY(危険予知)活動 ──
       case 'ky_create':   return kyCreate(payload.data || payload);
       case 'ky_delete':   return kyDelete(payload.id || payload);
+      case 'ky_sign':     return kySign(payload.data || payload);
 
       default:            return makeErr('不明なaction: ' + action);
     }
@@ -415,39 +417,55 @@ function ensureKySheet() {
   return sh;
 }
 
+function kyRowToObj(headers, row) {
+  const hazardsCol = headers.indexOf('hazards');
+  const workersDataCol = headers.indexOf('workersData');
+  const obj = {};
+  headers.forEach((h, i) => {
+    let v = row[i];
+    if (i === hazardsCol) {
+      if (typeof v === 'string' && v) {
+        try { v = JSON.parse(v); } catch(e){ v = []; }
+      } else if (!Array.isArray(v)) v = [];
+    }
+    obj[h] = v;
+  });
+  // workersData（氏名＋署名の配列）があればそちらを workers として優先返却
+  if (workersDataCol >= 0) {
+    let wd = row[workersDataCol];
+    if (typeof wd === 'string' && wd) {
+      try { wd = JSON.parse(wd); } catch(e){ wd = null; }
+    } else if (!Array.isArray(wd)) {
+      wd = null;
+    }
+    if (wd && wd.length) obj.workers = wd;
+    delete obj.workersData;
+  }
+  return obj;
+}
+
 function kyList() {
   const sh = ensureKySheet();
   const vals = sh.getDataRange().getValues();
   if (vals.length < 2) return makeRes([]);
   const headers = vals[0];
-  const hazardsCol = headers.indexOf('hazards');
-  const workersDataCol = headers.indexOf('workersData');
-  const rows = vals.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => {
-      let v = row[i];
-      if (i === hazardsCol) {
-        if (typeof v === 'string' && v) {
-          try { v = JSON.parse(v); } catch(e){ v = []; }
-        } else if (!Array.isArray(v)) v = [];
-      }
-      obj[h] = v;
-    });
-    // workersData（氏名＋署名の配列）があればそちらを workers として優先返却
-    if (workersDataCol >= 0) {
-      let wd = row[workersDataCol];
-      if (typeof wd === 'string' && wd) {
-        try { wd = JSON.parse(wd); } catch(e){ wd = null; }
-      } else if (!Array.isArray(wd)) {
-        wd = null;
-      }
-      if (wd && wd.length) obj.workers = wd;
-      delete obj.workersData;
-    }
-    return obj;
-  });
+  const rows = vals.slice(1).map(row => kyRowToObj(headers, row));
   rows.reverse(); // 新しい記録を先頭に
   return makeRes(rows);
+}
+
+function kyGet(id) {
+  const sh = ensureKySheet();
+  const vals = sh.getDataRange().getValues();
+  if (vals.length < 2) return makeErr('記録が見つかりません: ' + id);
+  const headers = vals[0];
+  const idCol = headers.indexOf('id');
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][idCol] == id) {
+      return makeRes(kyRowToObj(headers, vals[i]));
+    }
+  }
+  return makeErr('記録が見つかりません: ' + id);
 }
 
 function kyCreate(data) {
@@ -467,6 +485,39 @@ function kyCreate(data) {
   });
   sh.appendRow(row);
   return makeRes({ id });
+}
+
+function kySign(payload) {
+  const sh = ensureKySheet();
+  const vals = sh.getDataRange().getValues();
+  const headers = vals[0];
+  const idCol = headers.indexOf('id');
+  const workersDataCol = headers.indexOf('workersData');
+  const confirmSignCol = headers.indexOf('confirmedBySignature');
+
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][idCol] == payload.id) {
+      if (payload.target === 'confirm') {
+        if (confirmSignCol < 0) return makeErr('confirmedBySignature列が見つかりません');
+        sh.getRange(i + 1, confirmSignCol + 1).setValue(payload.signature || '');
+        return makeRes({ id: payload.id, target: 'confirm' });
+      }
+
+      if (workersDataCol < 0) return makeErr('workersData列が見つかりません');
+      let wd = vals[i][workersDataCol];
+      if (typeof wd === 'string' && wd) {
+        try { wd = JSON.parse(wd); } catch(e) { wd = []; }
+      } else if (!Array.isArray(wd)) {
+        wd = [];
+      }
+      const idx = Number(payload.workerIndex);
+      if (isNaN(idx) || idx < 0 || idx >= wd.length) return makeErr('対象の作業者が見つかりません');
+      wd[idx].signature = payload.signature || '';
+      sh.getRange(i + 1, workersDataCol + 1).setValue(JSON.stringify(wd));
+      return makeRes({ id: payload.id, target: 'worker', workerIndex: idx });
+    }
+  }
+  return makeErr('対象レコードが見つかりません: ' + payload.id);
 }
 
 function kyDelete(id) {

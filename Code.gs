@@ -26,8 +26,21 @@ function doGet(e) {
   try {
     const p = e.parameter || {};
     const action = p.action || 'list';
+
+    // dataパラメータをデコード（create/update/saveSign共通）
+    let data = {};
+    if (p.data) {
+      try { data = JSON.parse(decodeURIComponent(p.data)); } catch(_) {}
+    }
+    if (p.id) data.id = p.id;
+
     switch (action) {
       case 'list':        return acList();
+      case 'get':         return acGet(p.id);
+      case 'create':      return acCreate(data);
+      case 'update':      return acUpdate(data);
+      case 'delete':      return acDelete(data);
+      case 'saveSign':    return acSaveSign({ id: p.id, signData: p.signData });
       case 'fron_load':   return fronLoad();
       case 'eq_list':     return eqList();
       case 'eq_search':   return eqSearch(p.q || '');
@@ -543,4 +556,13 @@ function deleteRowById(sh, id) {
 function stubSheet() {
   // シートが存在しない場合の空オブジェクト代替
   return { getDataRange: () => ({ getValues: () => [[]] }) };
+}
+
+function acGet(id) {
+  const sh = sheet('点検報告');
+  if (!sh) return makeErr('点検報告シートが見つかりません');
+  const objs = sheetToObjects(sh);
+  const rec = objs.find(r => r.id == id);
+  if (!rec) return makeErr('レコードが見つかりません: ' + id);
+  return makeRes(rec);
 }

@@ -22,13 +22,29 @@ window.showView = function(view, keepId) {
   if (view === 'form' && !keepId) resetForm();
 };
 
-// ===== GAS通信（fetchベース・GASのリダイレクト対応）=====
+// ===== GAS通信（読み取りGET・書き込みPOST）=====
+const WRITE_ACTIONS = new Set(['create','update','delete','saveSign']);
+
 async function gasCall(params) {
-  const url = GAS_URL + '?' + new URLSearchParams(params).toString();
-  const res = await fetch(url, { redirect: 'follow' });
-  const json = await res.json();
-  if (json.status === 'error') throw new Error(json.data?.message || 'エラー');
-  return json.data;
+  if (WRITE_ACTIONS.has(params.action)) {
+    // POST（URL長制限を回避）
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' }, // GASはapplication/jsonをブロックするのでtext/plain
+      body: JSON.stringify(params)
+    });
+    const json = await res.json();
+    if (json.status === 'error') throw new Error(json.data?.message || 'エラー');
+    return json.data;
+  } else {
+    // GET
+    const url = GAS_URL + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url, { redirect: 'follow' });
+    const json = await res.json();
+    if (json.status === 'error') throw new Error(json.data?.message || 'エラー');
+    return json.data;
+  }
 }
 
 // ===== Load =====
@@ -119,8 +135,11 @@ window.saveReport = async function(e) {
   btn.disabled = true; btn.textContent = '保存中…';
   const data = collectFormData();
   try {
-    const params = { action: currentReportId ? 'update' : 'create', data: encodeURIComponent(JSON.stringify(data)) };
-    if (currentReportId) params.id = currentReportId;
+    // POSTはpayloadキーにデータを入れる（doPost: payload = body.payload || body）
+    const action = currentReportId ? 'update' : 'create';
+    const payload = Object.assign({}, data);
+    if (currentReportId) payload.id = currentReportId;
+    const params = { action, payload };
 
     let savedId = currentReportId;
     const result = await gasCall(params);

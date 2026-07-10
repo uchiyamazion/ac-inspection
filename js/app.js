@@ -401,5 +401,12 @@ const vn = id => { const val = document.getElementById(id)?.value; return val !=
 const setv = (id, val) => { const el = document.getElementById(id); if (el && val != null && val !== '') el.value = val; };
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const formatDate = d => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt) ? d : dt.getFullYear() + '/' + String(dt.getMonth()+1).padStart(2,'0') + '/' + String(dt.getDate()).padStart(2,'0'); };
+const formatTime = t => {
+  if (!t) return '—';
+  // "HH:mm" のような文字列ならそのまま、Dateやdatetime文字列なら時刻部分を抽出
+  if (typeof t === 'string' && /^\d{1,2}:\d{2}/.test(t)) return t;
+  const dt = new Date(t);
+  return isNaN(dt) ? String(t) : String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+};
 const df = (label, val, mono) => val != null && val !== '' ? '<div class="detail-field"><div class="detail-label">' + esc(label) + '</div><div class="detail-value' + (mono?' mono':'') + '">' + esc(val) + '</div></div>' : '';
 const dft = (label, val) => val ? '<div class="detail-field" style="margin-bottom:12px"><div class="detail-label">' + esc(label) + '</div><div class="detail-text">' + esc(val) + '</div></div>' : '';

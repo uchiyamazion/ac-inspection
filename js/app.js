@@ -26,23 +26,29 @@ window.showView = function(view, keepId) {
 const WRITE_ACTIONS = new Set(['create','update','delete','saveSign']);
 
 async function gasCall(params) {
+  const parseGasError = (json) => {
+    if (json.status !== 'error') return null;
+    // json.dataが文字列の場合はそのまま、オブジェクトならmessageを取る
+    return typeof json.data === 'string' ? json.data : (json.data?.message || 'GASエラー');
+  };
+
   if (WRITE_ACTIONS.has(params.action)) {
-    // POST（URL長制限を回避）
     const res = await fetch(GAS_URL, {
       method: 'POST',
       redirect: 'follow',
-      headers: { 'Content-Type': 'text/plain' }, // GASはapplication/jsonをブロックするのでtext/plain
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(params)
     });
     const json = await res.json();
-    if (json.status === 'error') throw new Error(json.data?.message || 'エラー');
+    const err = parseGasError(json);
+    if (err) throw new Error(err);
     return json.data;
   } else {
-    // GET
     const url = GAS_URL + '?' + new URLSearchParams(params).toString();
     const res = await fetch(url, { redirect: 'follow' });
     const json = await res.json();
-    if (json.status === 'error') throw new Error(json.data?.message || 'エラー');
+    const err = parseGasError(json);
+    if (err) throw new Error(err);
     return json.data;
   }
 }

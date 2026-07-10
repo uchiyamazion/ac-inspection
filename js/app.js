@@ -28,8 +28,10 @@ const WRITE_ACTIONS = new Set(['create','update','delete','saveSign']);
 async function gasCall(params) {
   const parseGasError = (json) => {
     if (json.status !== 'error') return null;
-    // json.dataが文字列の場合はそのまま、オブジェクトならmessageを取る
-    return typeof json.data === 'string' ? json.data : (json.data?.message || 'GASエラー');
+    // GASのエラー文字列は文字化けする場合があるため、内容をログのみ残してUIには表示しない
+    const raw = typeof json.data === 'string' ? json.data : (json.data?.message || '');
+    console.error('[GAS error]', raw);
+    return raw || 'GASエラー';
   };
 
   if (WRITE_ACTIONS.has(params.action)) {
@@ -61,7 +63,7 @@ async function loadReports() {
     if (location.hash.length > 1) openFromHash();
   } catch (e) {
     renderTable([]);
-    showToast('読込失敗: ' + e.message, 'error');
+    showToast('データの読み込みに失敗しました', 'error');
   }
 }
 
@@ -167,7 +169,7 @@ window.saveReport = async function(e) {
     await loadReports();
     showView('list');
   } catch (err) {
-    showToast('保存失敗: ' + err.message, 'error');
+    showToast('保存に失敗しました。GASの設定を確認してください', 'error');
   } finally {
     btn.disabled = false; btn.textContent = '保存する';
   }
@@ -274,7 +276,7 @@ window.deleteReport = async function(id) {
     await gasCall({ action: 'delete', id });
     showToast('削除しました', 'success');
     await loadReports();
-  } catch (err) { showToast('削除失敗: ' + err.message, 'error'); }
+  } catch (err) { showToast('削除に失敗しました', 'error'); }
 };
 
 function resetForm() {

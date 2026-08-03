@@ -361,12 +361,24 @@ function resizePadCanvas() {
 }
 
 window.openSignPad = function() {
-  document.getElementById('sign-pad-modal').classList.add('open');
+  const modal = document.getElementById('sign-pad-modal');
+  modal.classList.add('open');
+  fitSignModalHeight();
   setTimeout(resizePadCanvas, 80);
 };
 window.closeSignPad = function() {
   document.getElementById('sign-pad-modal').classList.remove('open');
 };
+function fitSignModalHeight() {
+  // 100dvh未対応のブラウザ向けの保険：実測の可視領域高さを直接指定し、
+  // モバイルのアドレスバー表示/非表示で保存ボタンが画面外に出るのを防ぐ
+  const modal = document.getElementById('sign-pad-modal');
+  if (modal.classList.contains('open')) {
+    modal.style.height = window.innerHeight + 'px';
+  }
+}
+window.addEventListener('resize', fitSignModalHeight);
+window.addEventListener('orientationchange', () => setTimeout(fitSignModalHeight, 150));
 window.clearSignPad = function() {
   padCtx.clearRect(0, 0, padCanvas.width, padCanvas.height);
 };

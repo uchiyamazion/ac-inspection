@@ -60,11 +60,21 @@ async function loadReports() {
   try {
     allReports = await gasCall({ action: 'list' });
     renderTable(allReports);
+    populateSuggestions();
     if (location.hash.length > 1) openFromHash();
   } catch (e) {
     renderTable([]);
     showToast('データの読み込みに失敗しました', 'error');
   }
+}
+
+// ===== 過去のお客様名・ご依頼元をサジェスト =====
+function populateSuggestions() {
+  const uniq = (arr) => Array.from(new Set(arr.filter(Boolean)));
+  const customerList = document.getElementById('customer-name-list');
+  const requesterList = document.getElementById('requester-list');
+  if (customerList) customerList.innerHTML = uniq(allReports.map(r => r.customerName)).map(v => '<option value="' + esc(v) + '">').join('');
+  if (requesterList) requesterList.innerHTML = uniq(allReports.map(r => r.requester)).map(v => '<option value="' + esc(v) + '">').join('');
 }
 
 // ===== Render =====
@@ -221,8 +231,10 @@ window.viewReport = function(id, readOnly) {
 
     const editBtn = document.getElementById('edit-btn');
     const printBtn = document.getElementById('print-btn');
+    const continueBtn = document.getElementById('continue-btn');
     if (editBtn) editBtn.style.display = readOnly ? 'none' : '';
     if (printBtn) printBtn.style.display = readOnly ? 'none' : '';
+    if (continueBtn) continueBtn.style.display = readOnly ? 'none' : '';
     document.getElementById('detail-modal').classList.add('open');
   } catch (err) {
     console.error('viewReport error:', err);
@@ -235,6 +247,45 @@ window.closeModal = function(e) {
     document.getElementById('detail-modal').classList.remove('open');
 };
 window.editCurrentReport = function() { closeModal(); editReport(currentReportId); };
+window.continueCurrentReport = function() { closeModal(); continueReport(currentReportId); };
+
+// ===== 続きを作成（見積提出→部品交換完了などの簡易入力）=====
+window.continueReport = function(id) {
+  const r = allReports.find(x => x.id === id);
+  if (!r) return;
+  currentReportId = null; // 新規レコードとして保存させる
+  document.getElementById('form-title').textContent = '点検・作業報告書 — 続きを作成（' + (r.systemName || r.customerName || '') + '）';
+  document.getElementById('report-form').reset();
+  document.getElementById('parts-list').innerHTML = '';
+  addPartRow();
+  clearSignInputDisplay();
+
+  // お客様情報・機器情報を引き継ぐ
+  const carryOver = [
+    ['customer-name','customerName'], ['address','address'], ['requester','requester'], ['reception','reception'],
+    ['system-name','systemName'], ['product-type','productType'], ['maker','maker'], ['model','model'], ['serial','serial'],
+    ['ref-ship','refShip'], ['ref-add','refAdd'],
+    ['symptom','symptom'], ['cause','cause'], // 前回の症状・原因は参照として引き継ぐ
+    ['worker','worker'],
+  ];
+  carryOver.forEach(([fid, key]) => setv(fid, r[key]));
+
+  const refSel = document.getElementById('refrigerant');
+  const refOther = document.getElementById('refrigerant-other');
+  const refVal = r.refrigerant || '';
+  const knownRef = ['R-32','R-410A','R-407C','R-22','R-404A','R-134a'];
+  if (refVal && !knownRef.includes(refVal)) {
+    refSel.value = 'その他'; refOther.value = refVal; refOther.style.display = '';
+  } else {
+    refSel.value = refVal; refOther.value = ''; refOther.style.display = 'none';
+  }
+
+  // 今回の入力項目は空のまま：作業日は今日、作業時間・作業内容・部品・運転データ・ステータス・サインは新規入力
+  setTodayDate();
+
+  showView('form', true);
+  showToast('前回の情報を引き継ぎました。今回分の作業内容だけ入力してください', 'success');
+};
 
 // ===== Edit =====
 window.editReport = function(id) {

@@ -93,9 +93,11 @@
         <div class="card">
           <h3 class="card-title">基本情報</h3>
           <div class="form-grid">
-            <div class="form-group"><label class="form-label">お客様名 <span class="required">*</span></label><input type="text" id="customer-name" class="form-input" required placeholder="株式会社〇〇"></div>
+            <div class="form-group"><label class="form-label">お客様名 <span class="required">*</span></label><input type="text" id="customer-name" class="form-input" required placeholder="株式会社〇〇" list="customer-name-list"></div>
             <div class="form-group"><label class="form-label">ご住所</label><input type="text" id="address" class="form-input" placeholder="〇〇市〇〇町1-2-3"></div>
-            <div class="form-group"><label class="form-label">ご依頼元</label><input type="text" id="requester" class="form-input"></div>
+            <div class="form-group"><label class="form-label">ご依頼元</label><input type="text" id="requester" class="form-input" list="requester-list"></div>
+            <datalist id="customer-name-list"></datalist>
+            <datalist id="requester-list"></datalist>
             <div class="form-group"><label class="form-label">受付内容</label><input type="text" id="reception" class="form-input"></div>
           </div>
         </div>
@@ -228,6 +230,7 @@
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closeModal()">閉じる</button>
         <button class="btn btn-secondary" id="print-btn" onclick="openPrint()">🖨 PDF出力</button>
+        <button class="btn btn-secondary" id="continue-btn" onclick="continueCurrentReport()">↻ 続きを作成</button>
         <button class="btn btn-primary" id="edit-btn" onclick="editCurrentReport()">編集</button>
       </div>
     </div>

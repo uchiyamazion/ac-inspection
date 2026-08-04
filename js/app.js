@@ -293,8 +293,12 @@ window.editReport = function(id) {
   if (!r) return;
   currentReportId = id;
   document.getElementById('form-title').textContent = '点検・作業報告書 — 編集';
-  const map = [['customer-name','customerName'],['address','address'],['requester','requester'],['reception','reception'],['system-name','systemName'],['product-type','productType'],['maker','maker'],['model','model'],['serial','serial'],['ref-ship','refShip'],['ref-add','refAdd'],['ref-recover','refRecover'],['ref-fill','refFill'],['work-date','workDate'],['work-start','workStart',true],['work-end','workEnd',true],['symptom','symptom'],['cause','cause'],['work-content','workContent'],['remarks','remarks'],['temp-indoor-in','tempIndoorIn'],['temp-indoor-out','tempIndoorOut'],['press-discharge','pressDischarge'],['press-suction','pressSuction'],['temp-discharge','tempDischarge'],['temp-suction','tempSuction'],['temp-outdoor','tempOutdoor'],['current','current'],['status','status'],['worker','worker']];
+  const map = [['customer-name','customerName'],['address','address'],['requester','requester'],['reception','reception'],['system-name','systemName'],['product-type','productType'],['maker','maker'],['model','model'],['serial','serial'],['ref-ship','refShip'],['ref-add','refAdd'],['ref-recover','refRecover'],['ref-fill','refFill'],['symptom','symptom'],['cause','cause'],['work-content','workContent'],['remarks','remarks'],['temp-indoor-in','tempIndoorIn'],['temp-indoor-out','tempIndoorOut'],['press-discharge','pressDischarge'],['press-suction','pressSuction'],['temp-discharge','tempDischarge'],['temp-suction','tempSuction'],['temp-outdoor','tempOutdoor'],['current','current'],['status','status'],['worker','worker']];
   map.forEach(([fid, key]) => setv(fid, r[key]));
+  // 作業日・作業時間は生のISO日時文字列で返ることがあるため、input要素が受け付ける形式に変換してセット
+  setv('work-date', toDateInputValue(r.workDate));
+  setv('work-start', formatTime(r.workStart) !== '—' ? formatTime(r.workStart) : '');
+  setv('work-end', formatTime(r.workEnd) !== '—' ? formatTime(r.workEnd) : '');
   const refSel = document.getElementById('refrigerant');
   const refOther = document.getElementById('refrigerant-other');
   const refVal = r.refrigerant || '';
@@ -464,6 +468,14 @@ const vn = id => { const val = document.getElementById(id)?.value; return val !=
 const setv = (id, val) => { const el = document.getElementById(id); if (el && val != null && val !== '') el.value = val; };
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const formatDate = d => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt) ? d : dt.getFullYear() + '/' + String(dt.getMonth()+1).padStart(2,'0') + '/' + String(dt.getDate()).padStart(2,'0'); };
+// <input type="date">用にYYYY-MM-DD形式へ変換（生のISO日時文字列やDateにも対応）
+const toDateInputValue = d => {
+  if (!d) return '';
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  const dt = new Date(d);
+  if (isNaN(dt)) return '';
+  return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
+};
 const formatTime = t => {
   if (!t) return '—';
   // "HH:mm" のような文字列ならそのまま、Dateやdatetime文字列なら時刻部分を抽出

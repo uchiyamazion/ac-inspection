@@ -2,6 +2,7 @@
 
 let allReports = [];
 let currentReportId = null;
+let currentParentId = null; // 「続きを作成」で紐付ける元レコードのid
 let currentSignDataUrl = ''; // 入力フォームのサイン（base64）
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -175,6 +176,7 @@ window.saveReport = async function(e) {
 
     showToast(currentReportId ? '更新しました' : '保存しました', 'success');
     currentReportId = null;
+    currentParentId = null;
     currentSignDataUrl = '';
     await loadReports();
     showView('list');
@@ -202,8 +204,51 @@ function collectFormData() {
     pressDischarge: vn('press-discharge'), pressSuction: vn('press-suction'),
     tempDischarge: vn('temp-discharge'), tempSuction: vn('temp-suction'),
     tempOutdoor: vn('temp-outdoor'), current: vn('current'),
-    parts, status: v('status'), worker: v('worker'),
+    parts, status: v('status'), worker: v('worker'), parentId: currentParentId || '',
   };
+}
+
+// ===== 関連する対応履歴（parentIdで連なった一連の記録）=====
+function buildHistoryChain(r) {
+  const byId = {};
+  allReports.forEach(x => { byId[x.id] = x; });
+  const chain = [r];
+  const seen = new Set([r.id]);
+  // 過去方向（親）へさかのぼる
+  let cur = r;
+  while (cur.parentId && byId[cur.parentId] && !seen.has(cur.parentId)) {
+    cur = byId[cur.parentId];
+    chain.unshift(cur);
+    seen.add(cur.id);
+  }
+  // 未来方向（子）へたどる
+  let frontier = [r.id];
+  while (frontier.length) {
+    const next = [];
+    frontier.forEach(pid => {
+      allReports.filter(x => x.parentId === pid).forEach(child => {
+        if (!seen.has(child.id)) { chain.push(child); seen.add(child.id); next.push(child.id); }
+      });
+    });
+    frontier = next;
+  }
+  return chain;
+}
+
+function buildHistoryHtml(r) {
+  const chain = buildHistoryChain(r);
+  if (chain.length <= 1) return '';
+  return '<div class="detail-section"><h4>関連する対応履歴（' + chain.length + '件）</h4>' +
+    '<div style="display:flex;flex-direction:column;gap:6px">' +
+    chain.map(x => {
+      const isCurrent = x.id === r.id;
+      return '<div' + (isCurrent ? '' : ' onclick="viewReport(\'' + x.id + '\')"') +
+        ' style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;background:' + (isCurrent ? 'var(--primary-light)' : '#f5f5f5') + ';' + (isCurrent ? '' : 'cursor:pointer;') + '">' +
+        '<span>' + formatDate(x.workDate) + (isCurrent ? '（表示中）' : '') + '</span>' +
+        '<span style="font-size:12px;color:var(--text-sub)">' + esc(x.status||'') + '</span>' +
+        '</div>';
+    }).join('') +
+    '</div></div>';
 }
 
 // ===== Detail Modal =====
@@ -220,7 +265,9 @@ window.viewReport = function(id, readOnly) {
     const signHtml = r.customerSign
       ? '<div class="detail-section"><h4>お客様サイン</h4><img src="' + esc(r.customerSign) + '" style="max-width:240px;max-height:80px;border:1px solid var(--border-light);border-radius:6px;padding:6px;background:#fafafa;"></div>'
       : '';
+    const historyHtml = buildHistoryHtml(r);
     document.getElementById('modal-body').innerHTML =
+      historyHtml +
       '<div class="detail-section"><h4>基本情報</h4><div class="detail-grid">' + df('お客様名',r.customerName) + df('ご住所',r.address) + df('ご依頼元',r.requester) + df('受付内容',r.reception) + '</div></div>' +
       '<div class="detail-section"><h4>機器情報</h4><div class="detail-grid">' + df('系統名',r.systemName) + df('品種',r.productType) + df('メーカー',r.maker) + df('型式',r.model,true) + df('製番',r.serial,true) + df('使用冷媒',r.refrigerant) + df('出荷時充填量',r.refShip!=null&&r.refShip!==''?r.refShip+' kg':'') + df('追加充填量',r.refAdd!=null&&r.refAdd!==''?r.refAdd+' kg':'') + df('冷媒回収量',r.refRecover!=null&&r.refRecover!==''?r.refRecover+' kg':'') + df('冷媒充填量',r.refFill!=null&&r.refFill!==''?r.refFill+' kg':'') + '</div></div>' +
       '<div class="detail-section"><h4>作業情報</h4><div class="detail-grid">' + df('作業日',formatDate(r.workDate)) + df('作業時間',r.workStart&&r.workEnd?formatTime(r.workStart)+'～'+formatTime(r.workEnd):'') + '</div>' + dft('症状',r.symptom) + dft('原因',r.cause) + dft('作業内容',r.workContent) + dft('備考',r.remarks) + '</div>' +
@@ -254,6 +301,7 @@ window.continueReport = function(id) {
   const r = allReports.find(x => x.id === id);
   if (!r) return;
   currentReportId = null; // 新規レコードとして保存させる
+  currentParentId = id;   // 元レコードと紐付け（履歴追跡用）
   document.getElementById('form-title').textContent = '点検・作業報告書 — 続きを作成（' + (r.systemName || r.customerName || '') + '）';
   document.getElementById('report-form').reset();
   document.getElementById('parts-list').innerHTML = '';
@@ -280,11 +328,14 @@ window.continueReport = function(id) {
     refSel.value = refVal; refOther.value = ''; refOther.style.display = 'none';
   }
 
-  // 今回の入力項目は空のまま：作業日は今日、作業時間・作業内容・部品・運転データ・ステータス・サインは新規入力
+  // 今回の結果は毎回変わりうる（直らないこともある）ため、ステータスは必ず手動選択させる
+  document.getElementById('status').value = '';
+
+  // 今回の入力項目は空のまま：作業日は今日、作業時間・作業内容・部品・運転データ・サインは新規入力
   setTodayDate();
 
   showView('form', true);
-  showToast('前回の情報を引き継ぎました。今回分の作業内容だけ入力してください', 'success');
+  showToast('前回の情報を引き継ぎました。今回分の作業内容とステータスを入力してください', 'success');
 };
 
 // ===== Edit =====
@@ -292,6 +343,7 @@ window.editReport = function(id) {
   const r = allReports.find(x => x.id === id);
   if (!r) return;
   currentReportId = id;
+  currentParentId = r.parentId || null;
   document.getElementById('form-title').textContent = '点検・作業報告書 — 編集';
   const map = [['customer-name','customerName'],['address','address'],['requester','requester'],['reception','reception'],['system-name','systemName'],['product-type','productType'],['maker','maker'],['model','model'],['serial','serial'],['ref-ship','refShip'],['ref-add','refAdd'],['ref-recover','refRecover'],['ref-fill','refFill'],['symptom','symptom'],['cause','cause'],['work-content','workContent'],['remarks','remarks'],['temp-indoor-in','tempIndoorIn'],['temp-indoor-out','tempIndoorOut'],['press-discharge','pressDischarge'],['press-suction','pressSuction'],['temp-discharge','tempDischarge'],['temp-suction','tempSuction'],['temp-outdoor','tempOutdoor'],['current','current'],['status','status'],['worker','worker']];
   map.forEach(([fid, key]) => setv(fid, r[key]));
@@ -336,6 +388,7 @@ window.deleteReport = async function(id) {
 
 function resetForm() {
   currentReportId = null;
+  currentParentId = null;
   document.getElementById('form-title').textContent = '新規 点検・作業報告書';
   document.getElementById('report-form').reset();
   setTodayDate();

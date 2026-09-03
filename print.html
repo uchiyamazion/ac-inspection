@@ -112,22 +112,28 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
   html, body { background: #fff; height: 100%; }
   .ctrl-bar { display: none !important; }
   .page-wrap { box-shadow: none; margin: 0; width: 100%; }
-  .rp { padding: 8mm 10mm; }
-  .title-wrap { margin-bottom: 8px; }
-  .title-wrap h1 { font-size: 19px; }
-  .top-area { margin-bottom: 10px; }
-  .main-tbl { margin-bottom: 6px; }
-  .date-row { margin-bottom: 6px; }
-  .body-tbl { margin-bottom: 6px; }
-  .body-tbl .cell { line-height: 1.7; }
-  .data-tbl { margin-bottom: 6px; }
-  .parts-tbl { margin-bottom: 6px; }
-  .conf-area { margin-bottom: 6px; }
-  .sign-row { margin-bottom: 8px; }
-  .footer-area { margin-top: 8px; }
+  .rp { padding: 6mm 9mm; }
+  .title-wrap { margin-bottom: 6px; margin-top: 2px; }
+  .title-wrap h1 { font-size: 18px; }
+  .top-area { margin-bottom: 7px; }
+  .comp-box { font-size: 8.5px; line-height: 1.6; padding: 6px 9px; }
+  .main-tbl { margin-bottom: 4px; }
+  .main-tbl td { padding: 3px 7px; }
+  .date-row { margin-bottom: 4px; }
+  .body-tbl { margin-bottom: 4px; }
+  .body-tbl td { padding: 3px 6px; }
+  .body-tbl .cell { line-height: 1.5; }
+  .body-tbl .symptom-cell { height: 26px; }
+  .body-tbl .work-cell { height: 65px; }
+  .body-tbl .remarks-cell { height: 22px; }
+  .data-tbl { margin-bottom: 4px; }
+  .parts-tbl { margin-bottom: 4px; }
+  .conf-area { margin-bottom: 4px; }
+  .sign-row { margin-bottom: 5px; }
+  .footer-area { margin-top: 5px; }
   * { page-break-inside: avoid; }
   table { page-break-inside: avoid; }
-  @page { margin: 7mm; size: A4 portrait; }
+  @page { margin: 6mm; size: A4 portrait; }
 }
 
 /* 内容が多い報告書のみ、はみ出し防止のためコンパクト表示に切り替える（JSで自動判定） */
@@ -175,8 +181,6 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 </div>
 
 <div class="page-wrap"><div class="rp">
-
-  <div class="page-tag">弊　社　控</div>
 
   <div class="title-wrap">
     <h1>空調機器　点検・作業報告書</h1>

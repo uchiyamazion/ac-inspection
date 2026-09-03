@@ -112,39 +112,57 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
   html, body { background: #fff; height: 100%; }
   .ctrl-bar { display: none !important; }
   .page-wrap { box-shadow: none; margin: 0; width: 100%; }
-  .rp { padding: 4mm 7mm; }
-  .title-wrap { margin-bottom: 4px; margin-top: 2px; }
-  .title-wrap h1 { font-size: 17px; padding: 4px 20px; }
-  .top-area { margin-bottom: 5px; gap: 10px; }
-  .comp-box { font-size: 8px; line-height: 1.5; padding: 5px 8px; }
-  .comp-name { font-size: 12px; margin-bottom: 3px; }
-  .cust-row .cline { font-size: 11px; }
-  .main-tbl { margin-bottom: 3px; font-size: 10px; }
-  .main-tbl td { padding: 3px 6px; }
-  .main-tbl .lbl { width: 75px; }
-  .date-row { margin-bottom: 3px; font-size: 11px; }
-  .body-tbl { margin-bottom: 2px; font-size: 10px; }
-  .body-tbl td { padding: 2px 6px; }
-  .body-tbl .symptom-cell { height: 22px; }
-  .body-tbl .work-cell { height: 50px; }
-  .body-tbl .remarks-cell { height: 16px; }
-  .data-tbl { margin-bottom: 2px; font-size: 9px; }
-  .data-tbl th, .data-tbl td { padding: 2px; }
-  .parts-tbl { margin-bottom: 2px; font-size: 10px; }
-  .parts-tbl th, .parts-tbl td { padding: 2px 6px; }
-  .parts-tbl td { height: 13px; }
-  .conf-area { margin-bottom: 3px; }
-  .conf-tbl td { padding: 3px 8px; font-size: 10px; }
-  .sign-row { margin-bottom: 4px; }
-  .sr-label { padding: 4px 8px; font-size: 10px; }
-  .sign-img-area { height: 34px; }
-  .sign-img-area img { max-height: 30px; }
-  .footer-area { margin-top: 5px; }
-  .footer-logo img { height: 24px; }
-  #qr-code img, #qr-code canvas { width: 52px !important; height: 52px !important; }
+  .rp { padding: 8mm 10mm; }
+  .title-wrap { margin-bottom: 8px; }
+  .title-wrap h1 { font-size: 19px; }
+  .top-area { margin-bottom: 10px; }
+  .main-tbl { margin-bottom: 6px; }
+  .date-row { margin-bottom: 6px; }
+  .body-tbl { margin-bottom: 6px; }
+  .body-tbl .cell { line-height: 1.7; }
+  .data-tbl { margin-bottom: 6px; }
+  .parts-tbl { margin-bottom: 6px; }
+  .conf-area { margin-bottom: 6px; }
+  .sign-row { margin-bottom: 8px; }
+  .footer-area { margin-top: 8px; }
   * { page-break-inside: avoid; }
   table { page-break-inside: avoid; }
-  @page { margin: 5mm; size: A4 portrait; }
+  @page { margin: 7mm; size: A4 portrait; }
+}
+
+/* 内容が多い報告書のみ、はみ出し防止のためコンパクト表示に切り替える（JSで自動判定） */
+@media print {
+  body.compact-print .rp { padding: 4mm 7mm; }
+  body.compact-print .title-wrap { margin-bottom: 4px; margin-top: 2px; }
+  body.compact-print .title-wrap h1 { font-size: 17px; padding: 4px 20px; }
+  body.compact-print .top-area { margin-bottom: 5px; gap: 10px; }
+  body.compact-print .comp-box { font-size: 8px; line-height: 1.5; padding: 5px 8px; }
+  body.compact-print .comp-name { font-size: 12px; margin-bottom: 3px; }
+  body.compact-print .cust-row .cline { font-size: 11px; }
+  body.compact-print .main-tbl { margin-bottom: 3px; font-size: 10px; }
+  body.compact-print .main-tbl td { padding: 3px 6px; }
+  body.compact-print .main-tbl .lbl { width: 75px; }
+  body.compact-print .date-row { margin-bottom: 3px; font-size: 11px; }
+  body.compact-print .body-tbl { margin-bottom: 2px; font-size: 10px; }
+  body.compact-print .body-tbl td { padding: 2px 6px; }
+  body.compact-print .body-tbl .cell { line-height: 1.5; }
+  body.compact-print .body-tbl .symptom-cell { height: 22px; }
+  body.compact-print .body-tbl .work-cell { height: 50px; }
+  body.compact-print .body-tbl .remarks-cell { height: 16px; }
+  body.compact-print .data-tbl { margin-bottom: 2px; font-size: 9px; }
+  body.compact-print .data-tbl th, body.compact-print .data-tbl td { padding: 2px; }
+  body.compact-print .parts-tbl { margin-bottom: 2px; font-size: 10px; }
+  body.compact-print .parts-tbl th, body.compact-print .parts-tbl td { padding: 2px 6px; }
+  body.compact-print .parts-tbl td { height: 13px; }
+  body.compact-print .conf-area { margin-bottom: 3px; }
+  body.compact-print .conf-tbl td { padding: 3px 8px; font-size: 10px; }
+  body.compact-print .sign-row { margin-bottom: 4px; }
+  body.compact-print .sr-label { padding: 4px 8px; font-size: 10px; }
+  body.compact-print .sign-img-area { height: 34px; }
+  body.compact-print .sign-img-area img { max-height: 30px; }
+  body.compact-print .footer-area { margin-top: 5px; }
+  body.compact-print .footer-logo img { height: 24px; }
+  body.compact-print #qr-code img, body.compact-print #qr-code canvas { width: 52px !important; height: 52px !important; }
 }
 </style>
 </head>
@@ -450,6 +468,15 @@ document.getElementById('qr-url-text').textContent = qrUrl.replace('https://',''
 if (typeof QRCode !== 'undefined' && data.id) {
   new QRCode(document.getElementById('qr-code'), { text:qrUrl, width:70, height:70, colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.M });
 }
+
+// 内容量が多い場合のみ印刷時にコンパクト表示へ切り替える（通常は詰めすぎないレイアウトを優先）
+(function() {
+  const textLen = ['symptom','cause','workContent','remarks'].reduce((sum, k) => sum + String(data[k]||'').length, 0);
+  const partsCount = (data.parts||[]).filter(p => p && (p.name||p.qty||p.code)).length;
+  if (textLen > 180 || partsCount > 3) {
+    document.body.classList.add('compact-print');
+  }
+})();
 </script>
 </body>
 </html>

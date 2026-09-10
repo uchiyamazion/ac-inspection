@@ -296,6 +296,70 @@ window.closeModal = function(e) {
 window.editCurrentReport = function() { closeModal(); editReport(currentReportId); };
 window.continueCurrentReport = function() { closeModal(); continueReport(currentReportId); };
 
+// ===== 対応済み物件から選択 =====
+function getDistinctProperties() {
+  const map = new Map();
+  allReports.forEach(r => {
+    if (!r.customerName) return;
+    const key = (r.customerName||'') + '|' + (r.systemName||'');
+    const existing = map.get(key);
+    if (!existing || new Date(r.workDate) > new Date(existing.workDate)) map.set(key, r);
+  });
+  return Array.from(map.values()).sort((a,b) => (a.customerName||'').localeCompare(b.customerName||'', 'ja') || (a.systemName||'').localeCompare(b.systemName||'', 'ja'));
+}
+
+window.openPropertyPicker = function() {
+  document.getElementById('property-search').value = '';
+  renderPropertyList();
+  document.getElementById('property-modal').classList.add('open');
+};
+window.closePropertyPicker = function(e) {
+  if (!e || e.target === document.getElementById('property-modal'))
+    document.getElementById('property-modal').classList.remove('open');
+};
+
+function renderPropertyList() {
+  const q = (document.getElementById('property-search').value || '').trim().toLowerCase();
+  const list = getDistinctProperties().filter(r =>
+    !q || (r.customerName||'').toLowerCase().includes(q) || (r.systemName||'').toLowerCase().includes(q)
+  );
+  const container = document.getElementById('property-list');
+  if (!list.length) {
+    container.innerHTML = '<div class="empty-state" style="padding:24px 0"><p>該当する物件がありません</p></div>';
+    return;
+  }
+  container.innerHTML = list.map(r =>
+    '<div onclick="selectProperty(\'' + r.id + '\')" style="padding:10px 12px;border:1px solid var(--border-light);border-radius:8px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.background=\'#f5f5f5\'" onmouseout="this.style.background=\'\'">' +
+    '<div style="font-weight:600">' + esc(r.customerName) + (r.systemName ? '　<span style="color:var(--text-sub);font-weight:400;font-size:12px">' + esc(r.systemName) + '</span>' : '') + '</div>' +
+    '<div style="font-size:12px;color:var(--text-sub);margin-top:2px">' + esc(r.address||'') + (r.maker||r.model ? '　' + esc(r.maker||'') + ' ' + esc(r.model||'') : '') + '</div>' +
+    '</div>'
+  ).join('');
+}
+
+window.selectProperty = function(id) {
+  const r = allReports.find(x => x.id === id);
+  if (!r) return;
+  const carryOver = [
+    ['customer-name','customerName'], ['address','address'], ['requester','requester'],
+    ['system-name','systemName'], ['product-type','productType'], ['maker','maker'], ['model','model'], ['serial','serial'],
+    ['ref-ship','refShip'], ['ref-add','refAdd'],
+  ];
+  carryOver.forEach(([fid, key]) => setv(fid, r[key]));
+
+  const refSel = document.getElementById('refrigerant');
+  const refOther = document.getElementById('refrigerant-other');
+  const refVal = r.refrigerant || '';
+  const knownRef = ['R-32','R-410A','R-407C','R-22','R-404A','R-134a'];
+  if (refVal && !knownRef.includes(refVal)) {
+    refSel.value = 'その他'; refOther.value = refVal; refOther.style.display = '';
+  } else if (refVal) {
+    refSel.value = refVal; refOther.value = ''; refOther.style.display = 'none';
+  }
+
+  closePropertyPicker();
+  showToast('物件情報を呼び出しました', 'success');
+};
+
 // ===== 続きを作成（見積提出→部品交換完了などの簡易入力）=====
 window.continueReport = function(id) {
   const r = allReports.find(x => x.id === id);

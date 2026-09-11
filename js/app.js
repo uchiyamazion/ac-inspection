@@ -85,20 +85,39 @@ function renderTable(reports) {
     tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">📋</span><p>報告書がありません。「新規報告書」から作成してください。</p></div></td></tr>';
     return;
   }
-  tbody.innerHTML = reports.map(r =>
-    '<tr>' +
+  tbody.innerHTML = reports.map(r => {
+    const tip = getChainTipRecord(r);
+    const statusCell = '<span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span>' +
+      (tip ? ' <span class="badge badge-' + esc(tip.status) + '" style="opacity:0.85;cursor:pointer;white-space:nowrap" title="続きの記録（' + esc(formatDate(tip.workDate)) + '）を見る" onclick="viewReport(\'' + tip.id + '\')">→ ' + esc(tip.status||'—') + '</span>' : '');
+    return '<tr>' +
     '<td style="white-space:nowrap;font-family:var(--mono);font-size:12px">' + formatDate(r.workDate) + '</td>' +
     '<td><strong>' + esc(r.customerName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.systemName||'') + '</span></td>' +
     '<td>' + esc(r.maker||'—') + '</td>' +
     '<td style="font-family:var(--mono);font-size:12px">' + esc(r.model||'—') + '</td>' +
     '<td>' + esc(r.refrigerant||'—') + '</td>' +
-    '<td><span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span></td>' +
+    '<td>' + statusCell + '</td>' +
     '<td><div class="row-actions">' +
       '<button class="row-btn" onclick="viewReport(\'' + r.id + '\')">詳細</button>' +
       '<button class="row-btn" onclick="editReport(\'' + r.id + '\')">編集</button>' +
       '<button class="row-btn danger" onclick="deleteReport(\'' + r.id + '\')">削除</button>' +
-    '</div></td></tr>'
-  ).join('');
+    '</div></td></tr>';
+  }).join('');
+}
+
+// 一覧で「→続きあり」を表示するため、記録の一連の続きの最終到達点(チェーンの先端)を返す（続きがなければnull）
+function getChainTipRecord(r) {
+  let cur = r;
+  let tip = null;
+  const seen = new Set([r.id]);
+  while (true) {
+    const children = allReports.filter(x => x.parentId === cur.id && !seen.has(x.id));
+    if (!children.length) break;
+    children.sort((a,b) => new Date(b.workDate) - new Date(a.workDate));
+    cur = children[0];
+    seen.add(cur.id);
+    tip = cur;
+  }
+  return tip;
 }
 
 // ===== Filter =====

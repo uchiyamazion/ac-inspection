@@ -209,8 +209,8 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
       <td><span id="p-rship"></span><span class="unit" id="p-rship-u"></span></td>
     </tr>
     <tr>
-      <td class="lbl"></td>
-      <td></td>
+      <td class="lbl">冷媒<br>戻し量</td>
+      <td><span id="p-rret"></span><span class="unit" id="p-rret-u"></span></td>
       <td class="lbl">追加<br>充填量</td>
       <td><span id="p-radd"></span><span class="unit" id="p-radd-u"></span></td>
     </tr>
@@ -357,6 +357,7 @@ function render(data) {
   setU('p-rship', data.refShip, 'kg');
   setU('p-radd', data.refAdd, 'kg');
   setU('p-rrec', data.refRecover, 'kg');
+  setU('p-rret', data.refReturn, 'kg');
   setU('p-rfil', data.refFill, 'kg');
 
   if (data.workDate) {

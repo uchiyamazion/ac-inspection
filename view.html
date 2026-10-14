@@ -364,6 +364,12 @@ function render(data) {
     const d = new Date(data.workDate);
     if (!isNaN(d)) { set('p-wy', d.getFullYear()); set('p-wm', d.getMonth()+1); set('p-wd', d.getDate()); }
   }
+  {
+    const dd = data.workDate ? new Date(data.workDate) : null;
+    const ymd = (dd && !isNaN(dd)) ? dd.getFullYear() + String(dd.getMonth()+1).padStart(2,'0') + String(dd.getDate()).padStart(2,'0') : '';
+    const nm = String(data.customerName || '').replace(/[\\\/:*?"<>|]/g, '').trim();
+    document.title = (ymd + nm) || '点検・作業報告書｜シオンテクノス';
+  }
   set('p-ws', cleanTime(data.workStart));
   set('p-we', cleanTime(data.workEnd));
   set('p-symptom', data.symptom);
@@ -422,13 +428,13 @@ function downloadPDF() {
   btn.textContent = '⏳ 生成中…';
   status.textContent = 'しばらくお待ちください';
 
-  // ファイル名を「報告書_お客様名_作業日.pdf」に
-  const custName = document.getElementById('p-customerName').textContent || '報告書';
+  // ファイル名を「作業日+お客様名.pdf」に（例: 20261014手稲渓仁会病院.pdf）
+  const custName = (document.getElementById('p-customerName').textContent || '').replace(/[\\\/:*?"<>|]/g, '').trim();
   const wy = document.getElementById('p-wy').textContent;
   const wm = document.getElementById('p-wm').textContent;
   const wd = document.getElementById('p-wd').textContent;
-  const dateStr = (wy && wm && wd) ? wy+wm.padStart(2,'0')+wd.padStart(2,'0') : 'date';
-  const fileName = '点検作業報告書_' + custName + '_' + dateStr + '.pdf';
+  const dateStr = (wy && wm && wd) ? wy+wm.padStart(2,'0')+wd.padStart(2,'0') : '';
+  const fileName = ((dateStr + custName) || '点検作業報告書') + '.pdf';
 
   const el = document.getElementById('report');
 

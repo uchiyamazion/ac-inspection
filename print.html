@@ -417,6 +417,15 @@ if (data.workDate) {
   }
 }
 
+// 保存時のファイル名（PDF保存の既定名）を「作業日+お客様名」にする 例: 20261014手稲渓仁会病院
+(function() {
+  const d = data.workDate ? new Date(data.workDate) : null;
+  const ymd = (d && !isNaN(d)) ? d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') : '';
+  const name = String(data.customerName || '').replace(/[\\\/:*?"<>|]/g, '').trim();
+  const title = (ymd + name) || '点検・作業報告書';
+  document.title = title;
+})();
+
 // ★ 時間を表示（修正部分）
 const workStart = cleanTime(data.workStart);
 const workEnd = cleanTime(data.workEnd);

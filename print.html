@@ -422,7 +422,8 @@ if (data.workDate) {
   const d = data.workDate ? new Date(data.workDate) : null;
   const ymd = (d && !isNaN(d)) ? d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') : '';
   const name = String(data.customerName || '').replace(/[\\\/:*?"<>|]/g, '').trim();
-  const title = (ymd + name) || '点検・作業報告書';
+  const sys = String(data.systemName || '').replace(/[\\\/:*?"<>|]/g, '').trim();
+  const title = (ymd + name + (sys ? '_' + sys : '')) || '点検・作業報告書';
   document.title = title;
 })();
 

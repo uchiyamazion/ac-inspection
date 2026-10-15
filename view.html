@@ -368,7 +368,8 @@ function render(data) {
     const dd = data.workDate ? new Date(data.workDate) : null;
     const ymd = (dd && !isNaN(dd)) ? dd.getFullYear() + String(dd.getMonth()+1).padStart(2,'0') + String(dd.getDate()).padStart(2,'0') : '';
     const nm = String(data.customerName || '').replace(/[\\\/:*?"<>|]/g, '').trim();
-    document.title = (ymd + nm) || '点検・作業報告書｜シオンテクノス';
+    const sy = String(data.systemName || '').replace(/[\\\/:*?"<>|]/g, '').trim();
+    document.title = (ymd + nm + (sy ? '_' + sy : '')) || '点検・作業報告書｜シオンテクノス';
   }
   set('p-ws', cleanTime(data.workStart));
   set('p-we', cleanTime(data.workEnd));
@@ -434,7 +435,8 @@ function downloadPDF() {
   const wm = document.getElementById('p-wm').textContent;
   const wd = document.getElementById('p-wd').textContent;
   const dateStr = (wy && wm && wd) ? wy+wm.padStart(2,'0')+wd.padStart(2,'0') : '';
-  const fileName = ((dateStr + custName) || '点検作業報告書') + '.pdf';
+  const sysName = (document.getElementById('p-systemName').textContent || '').replace(/[\\\/:*?"<>|]/g, '').trim();
+  const fileName = ((dateStr + custName + (sysName ? '_' + sysName : '')) || '点検作業報告書') + '.pdf';
 
   const el = document.getElementById('report');
 

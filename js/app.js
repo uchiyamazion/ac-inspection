@@ -183,17 +183,28 @@ window.saveReport = async function(e) {
     const result = await gasCall(params);
     if (!savedId) savedId = result.id;
 
-    if (currentSignDataUrl && savedId) {
-      try {
-        const compressed = await compressSign(currentSignDataUrl, 300, 100, 0.92);
-        const base64only = compressed.replace(/^data:image\/jpeg;base64,/, '');
-        await gasCall({ action: 'saveSign', id: savedId, signData: base64only });
-      } catch (signErr) {
-        console.error('サイン保存失敗:', signErr);
+    // 新しく書いたサイン（data URL）のみ送信。編集時に既存サイン（保存済みURL）が入っている場合は再送しない
+    let signFailed = false;
+    if (currentSignDataUrl && currentSignDataUrl.startsWith('data:') && savedId) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const compressed = await compressSign(currentSignDataUrl, 300, 100, 0.92);
+          const base64only = compressed.replace(/^data:image\/jpeg;base64,/, '');
+          await gasCall({ action: 'saveSign', id: savedId, signData: base64only });
+          signFailed = false;
+          break;
+        } catch (signErr) {
+          signFailed = true;
+          console.error('サイン保存失敗(' + attempt + '回目):', signErr);
+        }
       }
     }
 
-    showToast(currentReportId ? '更新しました' : '保存しました', 'success');
+    if (signFailed) {
+      showToast('報告書は保存しましたが、サインの保存に失敗しました。詳細を開いて編集から、サインを入れ直してください', 'error', 9000);
+    } else {
+      showToast(currentReportId ? '更新しました' : '保存しました', 'success');
+    }
     currentReportId = null;
     currentParentId = null;
     currentSignDataUrl = '';
@@ -510,11 +521,13 @@ function openFromHash() {
   if (r) { currentReportId = id; viewReport(id, true); }
 }
 
-function showToast(msg, type) {
+let toastTimer = null;
+function showToast(msg, type, ms) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast show' + (type ? ' ' + type : '');
-  setTimeout(() => t.className = 'toast', 3500);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', ms || 3500);
 }
 
 // ============================================================

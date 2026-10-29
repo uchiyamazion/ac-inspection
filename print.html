@@ -47,7 +47,7 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 .comp-box { flex: 1; border: 2px solid #4fc3f7; padding: 8px 12px; font-size: 9px; line-height: 1.7; }
 .comp-name { font-size: 14px; font-weight: bold; color: #0066cc; margin-bottom: 5px; }
 .comp-row { display: flex; gap: 3px; }
-.comp-row .lbl { font-weight: bold; white-space: nowrap; min-width: 70px; }
+.comp-row .lbl { font-weight: bold; white-space: nowrap; min-width: 58px; }
 
 .main-tbl { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
 .main-tbl td { border: 1px solid #4fc3f7; padding: 4px 8px; vertical-align: middle; }
@@ -72,9 +72,9 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
   writing-mode: vertical-rl; white-space: nowrap; width: 36px;
 }
 .body-tbl .cell { white-space: pre-wrap; line-height: 1.6; }
-.body-tbl .symptom-cell { height: 32px; }
+.body-tbl .symptom-cell { height: 36px; }
 .body-tbl .work-cell { height: 100px; }
-.body-tbl .remarks-cell { height: 36px; }
+.body-tbl .remarks-cell { height: 50px; }
 
 .data-tbl { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
 .data-tbl th { border: 1px solid #4fc3f7; padding: 4px 3px; background: #ddf4fc; text-align: center; font-weight: bold; white-space: nowrap; }
@@ -97,7 +97,8 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 .sign-row { display: flex; gap: 0; margin-bottom: 14px; margin-left: auto; width: 55%; }
 .sr-block { border: 1px solid #4fc3f7; flex: 1; display: flex; align-items: center; }
 .sr-label { background: #ddf4fc; font-weight: bold; padding: 6px 10px; font-size: 10.5px; white-space: nowrap; border-right: 1px solid #4fc3f7; min-width: 64px; text-align: center; }
-.sr-value { padding: 4px 10px; flex: 1; font-size: 11px; }
+.sr-value { padding: 4px 10px; flex: 1; font-size: 11px; white-space: nowrap; }
+.sign-row .sr-block:first-child { flex: 0 0 auto; min-width: 140px; }
 .sign-img-area { flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; padding: 2px 6px; overflow: hidden; }
 .sign-img-area img { max-height: 42px; max-width: 100%; filter: contrast(3); mix-blend-mode: multiply; }
 .sign-img-area .sp { font-size: 10px; color: #bbb; }
@@ -108,68 +109,79 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 .qr-lbl { font-size: 8px; color: #777; text-align: right; line-height: 1.5; }
 #qr-code img, #qr-code canvas { width: 70px !important; height: 70px !important; }
 
+/* ===== A4 1ページ自動フィット =====
+   画面表示と印刷を同じ幅(A4の印字幅=748px)・同じ寸法で描画し、この端末のフォントで実際の高さを測って
+   「ゆったり → tier1(やや詰める) → tier2(最小) → zoom縮小」の順に、1ページに収まるまで調整する（JSのfitToPage）。 */
+@page { margin: 6mm; size: A4 portrait; }
+.page-wrap { width: 748px; max-width: none; }
 @media print {
-  html, body { background: #fff; height: 100%; }
+  html, body { background: #fff; }
   .ctrl-bar { display: none !important; }
-  .page-wrap { box-shadow: none; margin: 0; width: 100%; }
-  .rp { padding: 6mm 9mm; }
-  .title-wrap { margin-bottom: 6px; margin-top: 2px; }
-  .title-wrap h1 { font-size: 18px; }
-  .top-area { margin-bottom: 7px; }
-  .comp-box { font-size: 8.5px; line-height: 1.6; padding: 6px 9px; }
-  .main-tbl { margin-bottom: 4px; }
-  .main-tbl td { padding: 3px 7px; }
-  .date-row { margin-bottom: 4px; }
-  .body-tbl { margin-bottom: 4px; }
-  .body-tbl td { padding: 3px 6px; }
-  .body-tbl .cell { line-height: 1.5; }
-  .body-tbl .symptom-cell { height: 26px; }
-  .body-tbl .work-cell { height: 65px; }
-  .body-tbl .remarks-cell { height: 22px; }
-  .data-tbl { margin-bottom: 4px; }
-  .parts-tbl { margin-bottom: 4px; }
-  .conf-area { margin-bottom: 4px; }
-  .sign-row { margin-bottom: 5px; }
-  .footer-area { margin-top: 5px; }
+  .page-wrap { box-shadow: none; margin: 0 auto; }
   * { page-break-inside: avoid; }
   table { page-break-inside: avoid; }
-  @page { margin: 6mm; size: A4 portrait; }
 }
 
-/* 内容が多い報告書のみ、はみ出し防止のためコンパクト表示に切り替える（JSで自動判定） */
-@media print {
-  body.compact-print .rp { padding: 4mm 7mm; }
-  body.compact-print .title-wrap { margin-bottom: 4px; margin-top: 2px; }
-  body.compact-print .title-wrap h1 { font-size: 17px; padding: 4px 20px; }
-  body.compact-print .top-area { margin-bottom: 5px; gap: 10px; }
-  body.compact-print .comp-box { font-size: 8px; line-height: 1.5; padding: 5px 8px; }
-  body.compact-print .comp-name { font-size: 12px; margin-bottom: 3px; }
-  body.compact-print .cust-row .cline { font-size: 11px; }
-  body.compact-print .main-tbl { margin-bottom: 3px; font-size: 10px; }
-  body.compact-print .main-tbl td { padding: 3px 6px; }
-  body.compact-print .main-tbl .lbl { width: 75px; }
-  body.compact-print .date-row { margin-bottom: 3px; font-size: 11px; }
-  body.compact-print .body-tbl { margin-bottom: 2px; font-size: 10px; }
-  body.compact-print .body-tbl td { padding: 2px 6px; }
-  body.compact-print .body-tbl .cell { line-height: 1.5; }
-  body.compact-print .body-tbl .symptom-cell { height: 22px; }
-  body.compact-print .body-tbl .work-cell { height: 50px; }
-  body.compact-print .body-tbl .remarks-cell { height: 16px; }
-  body.compact-print .data-tbl { margin-bottom: 2px; font-size: 9px; }
-  body.compact-print .data-tbl th, body.compact-print .data-tbl td { padding: 2px; }
-  body.compact-print .parts-tbl { margin-bottom: 2px; font-size: 10px; }
-  body.compact-print .parts-tbl th, body.compact-print .parts-tbl td { padding: 2px 6px; }
-  body.compact-print .parts-tbl td { height: 13px; }
-  body.compact-print .conf-area { margin-bottom: 3px; }
-  body.compact-print .conf-tbl td { padding: 3px 8px; font-size: 10px; }
-  body.compact-print .sign-row { margin-bottom: 4px; }
-  body.compact-print .sr-label { padding: 4px 8px; font-size: 10px; }
-  body.compact-print .sign-img-area { height: 34px; }
-  body.compact-print .sign-img-area img { max-height: 30px; }
-  body.compact-print .footer-area { margin-top: 5px; }
-  body.compact-print .footer-logo img { height: 24px; }
-  body.compact-print #qr-code img, body.compact-print #qr-code canvas { width: 52px !important; height: 52px !important; }
+/* 見出しの縦書きは writing-mode を使わず、1文字ずつ縦に積む（端末・ブラウザによる描画崩れ防止。文字への分解はJS） */
+td.vlabel, th.vlabel, td.vsub {
+  writing-mode: horizontal-tb !important;
+  white-space: normal; text-align: center; vertical-align: middle;
+  line-height: 1.3; letter-spacing: 0;
 }
+
+/* tier1: やや詰める */
+body.tier1 .rp { padding: 6mm 9mm; }
+body.tier1 .title-wrap { margin-bottom: 6px; margin-top: 2px; }
+body.tier1 .title-wrap h1 { font-size: 18px; }
+body.tier1 .top-area { margin-bottom: 7px; }
+body.tier1 .comp-box { font-size: 8.5px; line-height: 1.6; padding: 6px 9px; }
+body.tier1 .main-tbl { margin-bottom: 4px; }
+body.tier1 .main-tbl td { padding: 3px 7px; }
+body.tier1 .date-row { margin-bottom: 4px; }
+body.tier1 .body-tbl { margin-bottom: 4px; }
+body.tier1 .body-tbl td { padding: 3px 6px; }
+body.tier1 .body-tbl .cell { line-height: 1.5; }
+body.tier1 .body-tbl .symptom-cell { height: 34px; }
+body.tier1 .body-tbl .work-cell { height: 65px; }
+body.tier1 .body-tbl .remarks-cell { height: 48px; }
+body.tier1 .data-tbl { margin-bottom: 4px; }
+body.tier1 .parts-tbl { margin-bottom: 4px; }
+body.tier1 .conf-area { margin-bottom: 4px; }
+body.tier1 .sign-row { margin-bottom: 5px; }
+body.tier1 .footer-area { margin-top: 5px; }
+
+/* tier2: 最小 */
+body.tier2 .rp { padding: 4mm 7mm; }
+body.tier2 .title-wrap { margin-bottom: 4px; margin-top: 2px; }
+body.tier2 .title-wrap h1 { font-size: 17px; padding: 4px 20px; }
+body.tier2 .top-area { margin-bottom: 5px; gap: 10px; }
+body.tier2 .comp-box { font-size: 8px; line-height: 1.5; padding: 5px 8px; }
+body.tier2 .comp-name { font-size: 12px; margin-bottom: 3px; }
+body.tier2 .cust-row .cline { font-size: 11px; }
+body.tier2 .main-tbl { margin-bottom: 3px; font-size: 10px; }
+body.tier2 .main-tbl td { padding: 3px 6px; }
+body.tier2 .main-tbl .lbl { width: 75px; }
+body.tier2 .date-row { margin-bottom: 3px; font-size: 11px; }
+body.tier2 .body-tbl { margin-bottom: 2px; font-size: 10px; }
+body.tier2 .body-tbl td { padding: 2px 6px; }
+body.tier2 .body-tbl .cell { line-height: 1.5; }
+body.tier2 .body-tbl .symptom-cell { height: 32px; }
+body.tier2 .body-tbl .work-cell { height: 50px; }
+body.tier2 .body-tbl .remarks-cell { height: 46px; }
+body.tier2 .data-tbl { margin-bottom: 2px; font-size: 9px; }
+body.tier2 .data-tbl th, body.tier2 .data-tbl td { padding: 2px; }
+body.tier2 .parts-tbl { margin-bottom: 2px; font-size: 10px; }
+body.tier2 .parts-tbl th, body.tier2 .parts-tbl td { padding: 2px 6px; }
+body.tier2 .parts-tbl td { height: 13px; }
+body.tier2 .conf-area { margin-bottom: 3px; }
+body.tier2 .conf-tbl td { padding: 3px 8px; font-size: 10px; }
+body.tier2 .sign-row { margin-bottom: 4px; }
+body.tier2 .sr-label { padding: 4px 8px; font-size: 10px; }
+body.tier2 .sign-img-area { height: 34px; }
+body.tier2 .sign-img-area img { max-height: 30px; }
+body.tier2 .footer-area { margin-top: 5px; }
+body.tier2 .footer-logo img { height: 24px; }
+body.tier2 #qr-code img, body.tier2 #qr-code canvas { width: 52px !important; height: 52px !important; }
 </style>
 </head>
 <body>
@@ -484,14 +496,30 @@ if (typeof QRCode !== 'undefined' && data.id) {
   new QRCode(document.getElementById('qr-code'), { text:qrUrl, width:70, height:70, colorDark:'#000', colorLight:'#fff', correctLevel:QRCode.CorrectLevel.M });
 }
 
-// 内容量が多い場合のみ印刷時にコンパクト表示へ切り替える（通常は詰めすぎないレイアウトを優先）
-(function() {
-  const textLen = ['symptom','cause','workContent','remarks'].reduce((sum, k) => sum + String(data[k]||'').length, 0);
-  const partsCount = (data.parts||[]).filter(p => p && (p.name||p.qty||p.code)).length;
-  if (textLen > 180 || partsCount > 3) {
-    document.body.classList.add('compact-print');
-  }
-})();
+// 縦見出しを1文字ずつ縦積みにする（空白は除き、長音「ー」は縦棒に置き換える）
+document.querySelectorAll('.vlabel, .vsub').forEach(el => {
+  const chars = Array.from(el.textContent.replace(/[\s\u3000]/g, '')).map(c => c === 'ー' ? '｜' : c);
+  el.innerHTML = chars.join('<br>');
+});
+
+// A4 1ページに自動フィット：この端末のフォントで実際の高さを測り、収まるまで段階的に詰める
+function fitToPage() {
+  const rp = document.querySelector('.rp');
+  if (!rp) return;
+  const MAX_H = 1070; // A4(297mm)から上下余白6mm×2を引いた約1077pxに、安全マージンを見込んだ値
+  const cls = document.body.classList;
+  const height = () => rp.getBoundingClientRect().height;
+  cls.remove('tier1', 'tier2');
+  rp.style.zoom = '';
+  if (height() > MAX_H) cls.add('tier1');
+  if (height() > MAX_H) cls.add('tier2');
+  const h = height();
+  if (h > MAX_H) rp.style.zoom = Math.max(0.55, MAX_H / h).toFixed(4);
+}
+fitToPage();
+window.addEventListener('load', fitToPage);
+window.addEventListener('beforeprint', fitToPage);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToPage);
 </script>
 </body>
 </html>

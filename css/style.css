@@ -450,3 +450,9 @@ body {
   .form-actions { flex-direction: column; }
   .form-actions .btn { width: 100%; justify-content: center; }
 }
+
+/* 点検履歴：現場ごと表示 */
+.report-table .group-row td { background: var(--primary-light, #e8f0fe); cursor: pointer; padding: 10px 14px; }
+.report-table .group-row:hover td { filter: brightness(0.97); }
+.report-table .group-arrow { display: inline-block; width: 1.2em; font-size: 11px; color: var(--text-sub, #666); }
+.report-table .group-meta { margin: 0 10px 0 10px; font-size: 12px; color: var(--text-sub, #666); font-weight: 400; }

@@ -79,19 +79,23 @@ function populateSuggestions() {
 }
 
 // ===== Render =====
-function renderTable(reports) {
-  const tbody = document.getElementById('report-tbody');
-  if (!reports || !reports.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">📋</span><p>報告書がありません。「新規報告書」から作成してください。</p></div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = reports.map(r => {
-    const tip = getChainTipRecord(r);
-    const statusCell = '<span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span>' +
-      (tip ? ' <span class="badge badge-' + esc(tip.status) + '" style="opacity:0.85;cursor:pointer;white-space:nowrap" title="続きの記録（' + esc(formatDate(tip.workDate)) + '）を見る" onclick="viewReport(\'' + tip.id + '\')">→ ' + esc(tip.status||'—') + '</span>' : '');
-    return '<tr>' +
+let lastRenderedReports = [];
+const siteToggleOverride = new Map(); // 現場名 -> 開いているか（手動で開閉した分）
+
+function isFilteringList() {
+  return !!(document.getElementById('search-site').value || document.getElementById('filter-month').value || document.getElementById('filter-status').value);
+}
+
+function buildRowHtml(r, inGroup) {
+  const tip = getChainTipRecord(r);
+  const statusCell = '<span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span>' +
+    (tip ? ' <span class="badge badge-' + esc(tip.status) + '" style="opacity:0.85;cursor:pointer;white-space:nowrap" title="続きの記録（' + esc(formatDate(tip.workDate)) + '）を見る" onclick="viewReport(\'' + tip.id + '\')">→ ' + esc(tip.status||'—') + '</span>' : '');
+  const nameCell = inGroup
+    ? '<td style="padding-left:28px"><strong>' + esc(r.systemName||'—') + '</strong></td>'
+    : '<td><strong>' + esc(r.customerName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.systemName||'') + '</span></td>';
+  return '<tr' + (inGroup ? ' class="group-child"' : '') + '>' +
     '<td style="white-space:nowrap;font-family:var(--mono);font-size:12px">' + formatDate(r.workDate) + '</td>' +
-    '<td><strong>' + esc(r.customerName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.systemName||'') + '</span></td>' +
+    nameCell +
     '<td>' + esc(r.maker||'—') + '</td>' +
     '<td style="font-family:var(--mono);font-size:12px">' + esc(r.model||'—') + '</td>' +
     '<td>' + esc(r.refrigerant||'—') + '</td>' +
@@ -101,8 +105,59 @@ function renderTable(reports) {
       '<button class="row-btn" onclick="editReport(\'' + r.id + '\')">編集</button>' +
       '<button class="row-btn danger" onclick="deleteReport(\'' + r.id + '\')">削除</button>' +
     '</div></td></tr>';
+}
+
+function renderTable(reports) {
+  lastRenderedReports = reports || [];
+  const tbody = document.getElementById('report-tbody');
+  if (!reports || !reports.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">📋</span><p>報告書がありません。「新規報告書」から作成してください。</p></div></td></tr>';
+    return;
+  }
+  const modeEl = document.getElementById('list-mode');
+  const mode = modeEl ? modeEl.value : 'site';
+  if (mode !== 'site') {
+    tbody.innerHTML = reports.map(r => buildRowHtml(r, false)).join('');
+    return;
+  }
+
+  // 現場（お客様名）ごとにグループ化
+  const ts = r => { const t = new Date(r.workDate).getTime(); return isNaN(t) ? 0 : t; };
+  const groups = new Map();
+  reports.forEach(r => {
+    const k = r.customerName || '（現場名なし）';
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r);
+  });
+  const parentIds = new Set(allReports.map(x => x.parentId).filter(Boolean));
+  const filtering = isFilteringList();
+  const ordered = Array.from(groups.entries()).map(([name, list]) => {
+    list.sort((a, b) => ts(b) - ts(a));
+    return { name, list };
+  }).sort((a, b) => ts(b.list[0]) - ts(a.list[0]));
+
+  tbody.innerHTML = ordered.map(({ name, list }) => {
+    const open = siteToggleOverride.has(name) ? siteToggleOverride.get(name) : filtering;
+    // 対応待ち＝続きが作られていない最新の記録のうち、完了していないもの
+    const pending = {};
+    list.forEach(x => {
+      if (!parentIds.has(x.id) && x.status && x.status !== '完了') pending[x.status] = (pending[x.status] || 0) + 1;
+    });
+    const pendingHtml = Object.keys(pending).map(st => '<span class="badge badge-' + esc(st) + '">' + esc(st) + ' ' + pending[st] + '</span>').join(' ');
+    const head = '<tr class="group-row" data-key="' + encodeURIComponent(name) + '" onclick="toggleSite(this.dataset.key)"><td colspan="7">' +
+      '<span class="group-arrow">' + (open ? '▼' : '▶') + '</span> <strong>' + esc(name) + '</strong>' +
+      '<span class="group-meta">' + list.length + '件　最終 ' + esc(formatDate(list[0].workDate)) + '</span> ' + pendingHtml +
+      '</td></tr>';
+    return head + (open ? list.map(r => buildRowHtml(r, true)).join('') : '');
   }).join('');
 }
+
+window.toggleSite = function(enc) {
+  const name = decodeURIComponent(enc);
+  const cur = siteToggleOverride.has(name) ? siteToggleOverride.get(name) : isFilteringList();
+  siteToggleOverride.set(name, !cur);
+  renderTable(lastRenderedReports);
+};
 
 // 一覧で「→続きあり」を表示するため、記録の一連の続きの最終到達点(チェーンの先端)を返す（続きがなければnull）
 function getChainTipRecord(r) {
@@ -122,6 +177,7 @@ function getChainTipRecord(r) {
 
 // ===== Filter =====
 window.filterReports = function() {
+  siteToggleOverride.clear();
   const site = document.getElementById('search-site').value.toLowerCase();
   const month = document.getElementById('filter-month').value;
   const status = document.getElementById('filter-status').value;
@@ -132,6 +188,7 @@ window.filterReports = function() {
   ));
 };
 window.clearFilters = function() {
+  siteToggleOverride.clear();
   document.getElementById('search-site').value = '';
   document.getElementById('filter-month').value = '';
   document.getElementById('filter-status').value = '';

@@ -57,6 +57,12 @@
             <option value="見積書提出">見積書提出</option>
           </select>
         </div>
+        <div class="filter-group">
+          <select id="list-mode" class="filter-input" onchange="filterReports()">
+            <option value="site">現場ごと表示</option>
+            <option value="date">日付順表示</option>
+          </select>
+        </div>
         <button class="btn btn-ghost" onclick="clearFilters()">クリア</button>
       </div>
       <div class="table-wrap">

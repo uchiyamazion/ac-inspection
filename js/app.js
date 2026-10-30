@@ -567,8 +567,13 @@ window.addPartRow = function(data) {
 window.openPrint = function() {
   const r = allReports.find(x => x.id === currentReportId);
   if (!r) return;
-  const url = 'print.html?data=' + encodeURIComponent(JSON.stringify(r));
-  window.open(url, '_blank');
+  // サイン画像を含むとURLが長すぎて開けなくなるため、データはURLに載せずIDだけ渡す。
+  // データはlocalStorageに一時保存し、使えない場合は印刷画面側でGASから取得する。
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith('acPrint:')).forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('acPrint:' + r.id, JSON.stringify(r));
+  } catch (e) { console.warn('一時保存に失敗。印刷画面でGASから取得します', e); }
+  window.open('print.html?id=' + encodeURIComponent(r.id), '_blank');
 };
 
 // ===== ハッシュから閲覧専用で開く =====

@@ -360,9 +360,7 @@ body.tier2 #qr-code img, body.tier2 #qr-code canvas { width: 52px !important; he
 
 <script src="js/config.js"></script>
 <script>
-const P = new URLSearchParams(location.search);
-const data = JSON.parse(decodeURIComponent(P.get('data') || '{}'));
-
+function main(data) {
 // デバッグ用：受け取ったデータを確認
 console.log('Received data:', data);
 
@@ -520,6 +518,26 @@ fitToPage();
 window.addEventListener('load', fitToPage);
 window.addEventListener('beforeprint', fitToPage);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToPage);
+}
+
+// ===== 印刷データの取得 =====
+// サイン画像を含むとURLが数万字になり「URI Too Long」になるため、URLにはIDだけを載せ、
+// データは一時保存(localStorage)から読む。使えない場合はGASから取得する。
+(function bootstrap() {
+  const P = new URLSearchParams(location.search);
+  const id = P.get('id');
+  const showError = msg => { document.body.innerHTML = '<p style="padding:24px;font-size:14px">' + msg + '</p>'; };
+  let data = null;
+  // 旧形式(?data=...)との互換
+  if (P.get('data')) { try { data = JSON.parse(decodeURIComponent(P.get('data'))); } catch (e) {} }
+  if (!data && id) { try { const t = localStorage.getItem('acPrint:' + id); if (t) data = JSON.parse(t); } catch (e) {} }
+  if (data) { main(data); return; }
+  if (!id) { showError('印刷するデータがありません。履歴から「PDF出力」を開いてください。'); return; }
+  fetch(GAS_URL + '?action=get&id=' + encodeURIComponent(id), { redirect: 'follow' })
+    .then(r => r.json())
+    .then(json => { if (json.status !== 'success' || !json.data) throw new Error('record not found'); main(json.data); })
+    .catch(e => { console.error('印刷データの取得に失敗:', e); showError('データの読み込みに失敗しました。履歴から「PDF出力」をもう一度開いてください。'); });
+})();
 </script>
 </body>
 </html>

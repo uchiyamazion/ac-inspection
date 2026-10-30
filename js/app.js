@@ -197,8 +197,9 @@ window.clearFilters = function() {
 
 // ===== サイン画像を圧縮（保存サイズを抑える）=====
 function compressSign(srcDataUrl, maxW, maxH, quality) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const img = new Image();
+    img.onerror = () => reject(new Error('サイン画像の読み込みに失敗しました'));
     img.onload = function() {
       const canvas = document.createElement('canvas');
       let w = img.width, h = img.height;
@@ -242,7 +243,7 @@ window.saveReport = async function(e) {
 
     // 新しく書いたサイン（data URL）のみ送信。編集時に既存サイン（保存済みURL）が入っている場合は再送しない
     let signFailed = false;
-    if (currentSignDataUrl && currentSignDataUrl.startsWith('data:') && savedId) {
+    if (currentSignDataUrl && currentSignDataUrl.startsWith('data:image/png') && savedId) {
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
           const compressed = await compressSign(currentSignDataUrl, 300, 100, 0.92);

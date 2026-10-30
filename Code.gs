@@ -176,12 +176,20 @@ function acSaveSign(payload) {
   const vals = sh.getDataRange().getValues();
   const headers = vals[0];
   const idCol = headers.indexOf('id');
-  const signCol = headers.indexOf('signData');
-  if (idCol < 0 || signCol < 0) return makeErr('カラムが見つかりません');
+  // 画面・印刷・QRページが読む列は customerSign（旧: signData）。どちらかあればそこへ保存する
+  let signCol = headers.indexOf('customerSign');
+  if (signCol < 0) signCol = headers.indexOf('signData');
+  if (idCol < 0 || signCol < 0) return makeErr('カラムが見つかりません（customerSign）');
+
+  let sign = String(payload.signData || '');
+  if (!sign) return makeErr('サインデータが空です');
+  // フロントはbase64本体のみ送る。画像として表示できるようdata URLにして保存する
+  if (sign.indexOf('data:') !== 0) sign = 'data:image/jpeg;base64,' + sign;
+  if (sign.length > 49000) return makeErr('サイン画像が大きすぎます');
 
   for (let i = 1; i < vals.length; i++) {
     if (vals[i][idCol] == payload.id) {
-      sh.getRange(i + 1, signCol + 1).setValue(payload.signData);
+      sh.getRange(i + 1, signCol + 1).setValue(sign);
       return makeRes({ id: payload.id });
     }
   }

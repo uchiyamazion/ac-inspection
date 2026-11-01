@@ -385,7 +385,18 @@ function render(data) {
   setU('d-ts', data.tempSuction, '℃');
   setU('d-to', data.tempOutdoor, '℃');
   setU('d-cur', data.current, 'A');
-  (data.parts||[]).slice(0,4).forEach((p,i)=>{set('pn'+i,p.name);set('pq'+i,p.qty);set('pu'+i,p.unit);set('pc'+i,p.code);});
+  {
+    const partsList = data.parts || [];
+    const partRows = Math.max(4, partsList.length);
+    const tbl = document.querySelector('.parts-tbl');
+    tbl.querySelector('.vlabel').rowSpan = partRows + 1;
+    for (let i = 4; i < partRows; i++) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td id="pn'+i+'"></td><td id="pq'+i+'"></td><td id="pu'+i+'"></td><td id="pc'+i+'"></td>';
+      tbl.tBodies[0].appendChild(tr);
+    }
+    partsList.forEach((p,i)=>{set('pn'+i,p.name);set('pq'+i,p.qty);set('pu'+i,p.unit);set('pc'+i,p.code);});
+  }
   const cb = document.getElementById('cb-'+(data.status||''));
   if (cb) cb.textContent = '✓';
   set('p-worker', data.worker);

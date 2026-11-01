@@ -103,7 +103,7 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 .sign-img-area img { max-height: 42px; max-width: 100%; filter: contrast(3); mix-blend-mode: multiply; }
 .sign-img-area .sp { font-size: 10px; color: #bbb; }
 
-.footer-area { display: flex; align-items: center; justify-content: center; position: relative; margin-top: 18px; }
+.footer-area { display: flex; align-items: center; justify-content: center; position: relative; margin-top: 18px; min-height: 74px; }
 .footer-logo img { height: 32px; }
 .qr-corner { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; }
 .qr-lbl { font-size: 8px; color: #777; text-align: right; line-height: 1.5; }
@@ -117,7 +117,7 @@ body { font-family: "MS Gothic","Hiragino Kaku Gothic ProN",monospace; font-size
 @media print {
   html, body { background: #fff; }
   .ctrl-bar { display: none !important; }
-  .page-wrap { box-shadow: none; margin: 0 auto; }
+  .page-wrap { box-shadow: none; margin: 0 auto; max-height: 282mm; overflow: hidden; } /* 万一あふれても2ページ目を作らない（最後の安全弁） */
   * { page-break-inside: avoid; }
   table { page-break-inside: avoid; }
 }
@@ -179,7 +179,7 @@ body.tier2 .sign-row { margin-bottom: 4px; }
 body.tier2 .sr-label { padding: 4px 8px; font-size: 10px; }
 body.tier2 .sign-img-area { height: 34px; }
 body.tier2 .sign-img-area img { max-height: 30px; }
-body.tier2 .footer-area { margin-top: 5px; }
+body.tier2 .footer-area { margin-top: 5px; min-height: 56px; }
 body.tier2 .footer-logo img { height: 24px; }
 body.tier2 #qr-code img, body.tier2 #qr-code canvas { width: 52px !important; height: 52px !important; }
 </style>
@@ -464,7 +464,18 @@ setU('d-to', data.tempOutdoor, '℃');
 setU('d-cur', data.current, 'A');
 
 // 使用部品
-(data.parts||[]).slice(0,4).forEach((p,i)=>{
+const partsList = data.parts || [];
+const partRows = Math.max(4, partsList.length);
+{
+  const tbl = document.querySelector('.parts-tbl');
+  tbl.querySelector('.vlabel').rowSpan = partRows + 1;
+  for (let i = 4; i < partRows; i++) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td id="pn'+i+'"></td><td id="pq'+i+'"></td><td id="pu'+i+'"></td><td id="pc'+i+'"></td>';
+    tbl.tBodies[0].appendChild(tr);
+  }
+}
+partsList.forEach((p,i)=>{
   set('pn'+i,p.name);
   set('pq'+i,p.qty);
   set('pu'+i,p.unit);
@@ -504,7 +515,7 @@ document.querySelectorAll('.vlabel, .vsub').forEach(el => {
 function fitToPage() {
   const rp = document.querySelector('.rp');
   if (!rp) return;
-  const MAX_H = 1070; // A4(297mm)から上下余白6mm×2を引いた約1077pxに、安全マージンを見込んだ値
+  const MAX_H = 1020; // 実際の印刷時の高さは端末のフォント処理で数%ずれるため、A4の約1077pxに対し余裕を持たせる // A4(297mm)から上下余白6mm×2を引いた約1077pxに、安全マージンを見込んだ値
   const cls = document.body.classList;
   const height = () => rp.getBoundingClientRect().height;
   cls.remove('tier1', 'tier2');

@@ -456,3 +456,39 @@ body {
 .report-table .group-row:hover td { filter: brightness(0.97); }
 .report-table .group-arrow { display: inline-block; width: 1.2em; font-size: 11px; color: var(--text-sub, #666); }
 .report-table .group-meta { margin: 0 10px 0 10px; font-size: 12px; color: var(--text-sub, #666); font-weight: 400; }
+
+/* ===== 便利機能：候補・下書き・過去履歴・対応待ち ===== */
+.phrase-btn { margin-left: 8px; padding: 2px 10px; font-size: 11px; font-weight: 400; color: var(--primary); background: var(--primary-light); border: 1px solid transparent; border-radius: 999px; cursor: pointer; }
+.phrase-btn:hover { border-color: var(--primary); }
+.phrase-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border-light); border-radius: 8px; margin-bottom: 8px; cursor: pointer; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+.phrase-item:hover { background: #f5f5f5; }
+.phrase-item.added { background: var(--secondary-light); border-color: transparent; }
+.phrase-item .phrase-text { flex: 1; }
+.phrase-item .phrase-count { flex-shrink: 0; font-size: 11px; color: var(--text-sub); background: #eef1f5; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.draft-banner { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff8e1; border: 1px solid #ffe08a; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+.draft-actions { display: flex; gap: 8px; }
+.equip-history { margin-top: 16px; padding: 12px 14px; background: #f4f8fd; border: 1px solid #d6e6f7; border-radius: 10px; }
+.equip-history-head { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+.equip-item { display: flex; gap: 10px; align-items: baseline; padding: 7px 4px; border-top: 1px solid #e3edf8; cursor: pointer; font-size: 12.5px; }
+.equip-history-head + .equip-item { border-top: none; }
+.equip-item:hover { background: #e9f2fc; }
+.equip-item .eh-date { flex-shrink: 0; font-family: var(--mono); }
+.equip-item .eh-text { color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.equip-more { background: none; border: none; color: var(--primary); font-size: 12px; cursor: pointer; padding: 6px 4px; }
+.badge-elapsed { background: #eef1f5; color: #555; }
+.badge-elapsed.elapsed-warn { background: #fff3cd; color: #8a5a00; }
+.badge-elapsed.elapsed-late { background: #fde8e8; color: var(--danger); font-weight: 700; }
+.pending-note { margin: 0 0 10px; padding: 8px 12px; background: #fff8e1; border-radius: 8px; font-size: 12px; color: #6b5200; }
+#pending-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.pending-count { font-weight: 700; }
+
+/* スマホ向けの見え方の調整 */
+.name-status { display: none; margin-top: 4px; flex-wrap: wrap; gap: 4px; }
+.report-table .group-row td > .group-head { position: sticky; left: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; width: fit-content; max-width: calc(100vw - 90px); }
+.report-table .group-head .group-meta { margin: 0; }
+#phrase-search, #property-search { width: 100%; box-sizing: border-box; }
+@media (max-width: 700px) {
+  .name-status { display: flex; }
+  .equip-item { flex-wrap: wrap; }
+  .equip-item .eh-text { flex: 1 1 100%; white-space: normal; }
+}

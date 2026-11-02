@@ -4,6 +4,10 @@ let allReports = [];
 let currentReportId = null;
 let currentParentId = null; // 「続きを作成」で紐付ける元レコードのid
 let currentSignDataUrl = ''; // 入力フォームのサイン（base64）
+let pendingOnly = false;      // 一覧を「対応待ち」のみ表示
+let parentIdSet = new Set();  // 続きの記録を持つ（=最新ではない）記録のid集合
+let modalFromForm = false;    // 入力フォーム上から詳細を開いたか（閉じたとき入力中の状態を戻す）
+let formReportIdBackup = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   setTodayDate();
@@ -21,6 +25,7 @@ window.showView = function(view, keepId) {
   document.getElementById('view-' + view).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   if (view === 'form' && !keepId) resetForm();
+  if (view === 'form') { if (keepId) hideDraftBanner(); updateEquipHistory(); }
 };
 
 // ===== GAS通信（読み取りGET・書き込みPOST）=====
@@ -86,20 +91,48 @@ function isFilteringList() {
   return !!(document.getElementById('search-site').value || document.getElementById('filter-month').value || document.getElementById('filter-status').value);
 }
 
+function tsOf(r) { const t = new Date(r.workDate).getTime(); return isNaN(t) ? 0 : t; }
+function daysSince(d) {
+  const dt = new Date(d); if (isNaN(dt)) return 0;
+  const a0 = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  const n = new Date(); const b0 = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  return Math.max(0, Math.round((b0 - a0) / 86400000));
+}
+// 対応待ち＝続きの記録が無い最新の記録のうち、完了していないもの（見積書提出・未完了）
+function isPendingRecord(r) { return !parentIdSet.has(r.id) && !!r.status && r.status !== '完了'; }
+function elapsedBadge(r) {
+  const d = daysSince(r.workDate);
+  const cls = d >= 14 ? 'elapsed-late' : (d >= 7 ? 'elapsed-warn' : '');
+  return '<span class="badge badge-elapsed ' + cls + '" style="white-space:nowrap" title="作業日から' + d + '日経過">経過' + d + '日</span>';
+}
+function updatePendingUi() {
+  const n = allReports.filter(isPendingRecord).length;
+  const c = document.getElementById('pending-count'); if (c) c.textContent = n ? '(' + n + ')' : '';
+  const btn = document.getElementById('pending-btn'); if (btn) btn.classList.toggle('active', pendingOnly);
+  const note = document.getElementById('pending-note');
+  if (note) {
+    note.style.display = pendingOnly ? '' : 'none';
+    note.textContent = '⏳ 対応待ち ' + n + '件（作業日が古い順）　※続きの記録が無い「見積書提出」「未完了」の案件です';
+  }
+}
+window.togglePending = function() { pendingOnly = !pendingOnly; filterReports(); };
+
 function buildRowHtml(r, inGroup) {
   const tip = getChainTipRecord(r);
   const statusCell = '<span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span>' +
     (tip ? ' <span class="badge badge-' + esc(tip.status) + '" style="opacity:0.85;cursor:pointer;white-space:nowrap" title="続きの記録（' + esc(formatDate(tip.workDate)) + '）を見る" onclick="viewReport(\'' + tip.id + '\')">→ ' + esc(tip.status||'—') + '</span>' : '');
+  // スマホでは右のステータス列まで横スクロールしないと見えないため、左の列にも小さく表示する（PCでは非表示）
+  const nameStatus = '<div class="name-status"><span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span>' + (isPendingRecord(r) ? elapsedBadge(r) : '') + '</div>';
   const nameCell = inGroup
-    ? '<td style="padding-left:28px"><strong>' + esc(r.systemName||'—') + '</strong></td>'
-    : '<td><strong>' + esc(r.customerName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.systemName||'') + '</span></td>';
+    ? '<td style="padding-left:28px"><strong>' + esc(r.systemName||'—') + '</strong>' + nameStatus + '</td>'
+    : '<td><strong>' + esc(r.customerName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.systemName||'') + '</span>' + nameStatus + '</td>';
   return '<tr' + (inGroup ? ' class="group-child"' : '') + '>' +
     '<td style="white-space:nowrap;font-family:var(--mono);font-size:12px">' + formatDate(r.workDate) + '</td>' +
     nameCell +
     '<td>' + esc(r.maker||'—') + '</td>' +
     '<td style="font-family:var(--mono);font-size:12px">' + esc(r.model||'—') + '</td>' +
     '<td>' + esc(r.refrigerant||'—') + '</td>' +
-    '<td>' + statusCell + '</td>' +
+    '<td>' + statusCell + (isPendingRecord(r) ? ' ' + elapsedBadge(r) : '') + '</td>' +
     '<td><div class="row-actions">' +
       '<button class="row-btn" onclick="viewReport(\'' + r.id + '\')">詳細</button>' +
       '<button class="row-btn" onclick="editReport(\'' + r.id + '\')">編集</button>' +
@@ -108,14 +141,19 @@ function buildRowHtml(r, inGroup) {
 }
 
 function renderTable(reports) {
+  parentIdSet = new Set(allReports.map(x => x.parentId).filter(Boolean));
   lastRenderedReports = reports || [];
+  updatePendingUi();
+  if (pendingOnly) reports = (reports || []).filter(isPendingRecord).sort((x, y) => tsOf(x) - tsOf(y)); // 古い順
   const tbody = document.getElementById('report-tbody');
   if (!reports || !reports.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">📋</span><p>報告書がありません。「新規報告書」から作成してください。</p></div></td></tr>';
+    tbody.innerHTML = pendingOnly
+      ? '<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">✅</span><p>対応待ちの案件はありません。</p></div></td></tr>'
+      : '<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">📋</span><p>報告書がありません。「新規報告書」から作成してください。</p></div></td></tr>';
     return;
   }
   const modeEl = document.getElementById('list-mode');
-  const mode = modeEl ? modeEl.value : 'site';
+  const mode = pendingOnly ? 'date' : (modeEl ? modeEl.value : 'site');
   if (mode !== 'site') {
     tbody.innerHTML = reports.map(r => buildRowHtml(r, false)).join('');
     return;
@@ -141,13 +179,16 @@ function renderTable(reports) {
     // 対応待ち＝続きが作られていない最新の記録のうち、完了していないもの
     const pending = {};
     list.forEach(x => {
-      if (!parentIds.has(x.id) && x.status && x.status !== '完了') pending[x.status] = (pending[x.status] || 0) + 1;
+      if (!parentIds.has(x.id) && x.status && x.status !== '完了') {
+        const p = pending[x.status] || (pending[x.status] = { n: 0, maxDays: 0 });
+        p.n++; p.maxDays = Math.max(p.maxDays, daysSince(x.workDate));
+      }
     });
-    const pendingHtml = Object.keys(pending).map(st => '<span class="badge badge-' + esc(st) + '">' + esc(st) + ' ' + pending[st] + '</span>').join(' ');
-    const head = '<tr class="group-row" data-key="' + encodeURIComponent(name) + '" onclick="toggleSite(this.dataset.key)"><td colspan="7">' +
+    const pendingHtml = Object.keys(pending).map(st => '<span class="badge badge-' + esc(st) + '">' + esc(st) + ' ' + pending[st].n + '件・最長' + pending[st].maxDays + '日</span>').join(' ');
+    const head = '<tr class="group-row" data-key="' + encodeURIComponent(name) + '" onclick="toggleSite(this.dataset.key)"><td colspan="7"><div class="group-head">' +
       '<span class="group-arrow">' + (open ? '▼' : '▶') + '</span> <strong>' + esc(name) + '</strong>' +
       '<span class="group-meta">' + list.length + '件　最終 ' + esc(formatDate(list[0].workDate)) + '</span> ' + pendingHtml +
-      '</td></tr>';
+      '</div></td></tr>';
     return head + (open ? list.map(r => buildRowHtml(r, true)).join('') : '');
   }).join('');
 }
@@ -189,6 +230,7 @@ window.filterReports = function() {
 };
 window.clearFilters = function() {
   siteToggleOverride.clear();
+  pendingOnly = false;
   document.getElementById('search-site').value = '';
   document.getElementById('filter-month').value = '';
   document.getElementById('filter-status').value = '';
@@ -230,6 +272,7 @@ window.saveReport = async function(e) {
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = '保存中…';
   const data = collectFormData();
+  const wasNew = !currentReportId;
   try {
     // POSTはpayloadキーにデータを入れる（doPost: payload = body.payload || body）
     const action = currentReportId ? 'update' : 'create';
@@ -263,6 +306,8 @@ window.saveReport = async function(e) {
     } else {
       showToast(currentReportId ? '更新しました' : '保存しました', 'success');
     }
+    if (data.worker) { try { localStorage.setItem('acLastWorker', data.worker); } catch (e) {} } // 次回の作業者を自動入力
+    if (wasNew) clearDraft(); // 保存できたので下書きは不要
     currentReportId = null;
     currentParentId = null;
     currentSignDataUrl = '';
@@ -323,14 +368,14 @@ function buildHistoryChain(r) {
   return chain;
 }
 
-function buildHistoryHtml(r) {
+function buildHistoryHtml(r, readOnly) {
   const chain = buildHistoryChain(r);
   if (chain.length <= 1) return '';
   return '<div class="detail-section"><h4>関連する対応履歴（' + chain.length + '件）</h4>' +
     '<div style="display:flex;flex-direction:column;gap:6px">' +
     chain.map(x => {
       const isCurrent = x.id === r.id;
-      return '<div' + (isCurrent ? '' : ' onclick="viewReport(\'' + x.id + '\')"') +
+      return '<div' + (isCurrent ? '' : ' onclick="viewReport(\'' + x.id + '\'' + (readOnly ? ',true' : '') + ')"') +
         ' style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;background:' + (isCurrent ? 'var(--primary-light)' : '#f5f5f5') + ';' + (isCurrent ? '' : 'cursor:pointer;') + '">' +
         '<span>' + formatDate(x.workDate) + (isCurrent ? '（表示中）' : '') + '</span>' +
         '<span style="font-size:12px;color:var(--text-sub)">' + esc(x.status||'') + '</span>' +
@@ -344,6 +389,9 @@ window.viewReport = function(id, readOnly) {
   try {
     const r = allReports.find(x => x.id === id);
     if (!r) { showToast('該当データが見つかりません(id:' + id + ')', 'error'); return; }
+    if (document.getElementById('view-form').classList.contains('active') && !modalFromForm) {
+      modalFromForm = true; formReportIdBackup = currentReportId; // 入力中のフォームの状態を覚えておく
+    }
     currentReportId = id;
     document.getElementById('modal-title').textContent = formatDate(r.workDate) + ' — ' + (r.systemName || '');
     const partsHtml = Array.isArray(r.parts) && r.parts.length
@@ -353,7 +401,7 @@ window.viewReport = function(id, readOnly) {
     const signHtml = r.customerSign
       ? '<div class="detail-section"><h4>お客様サイン</h4><img src="' + esc(r.customerSign) + '" style="max-width:240px;max-height:80px;border:1px solid var(--border-light);border-radius:6px;padding:6px;background:#fafafa;"></div>'
       : '';
-    const historyHtml = buildHistoryHtml(r);
+    const historyHtml = buildHistoryHtml(r, readOnly);
     document.getElementById('modal-body').innerHTML =
       historyHtml +
       '<div class="detail-section"><h4>基本情報</h4><div class="detail-grid">' + df('お客様名',r.customerName) + df('ご住所',r.address) + df('ご依頼元',r.requester) + df('受付内容',r.reception) + '</div></div>' +
@@ -378,8 +426,10 @@ window.viewReport = function(id, readOnly) {
 };
 
 window.closeModal = function(e) {
-  if (!e || e.target === document.getElementById('detail-modal'))
+  if (!e || e.target === document.getElementById('detail-modal')) {
     document.getElementById('detail-modal').classList.remove('open');
+    if (modalFromForm) { currentReportId = formReportIdBackup; modalFromForm = false; } // フォーム上で開いた詳細を閉じたら、入力中の状態に戻す
+  }
 };
 window.editCurrentReport = function() { closeModal(); editReport(currentReportId); };
 window.continueCurrentReport = function() { closeModal(); continueReport(currentReportId); };
@@ -445,6 +495,7 @@ window.selectProperty = function(id) {
   }
 
   closePropertyPicker();
+  updateEquipHistory();
   showToast('物件情報を呼び出しました', 'success');
 };
 
@@ -469,6 +520,7 @@ window.continueReport = function(id) {
     ['worker','worker'],
   ];
   carryOver.forEach(([fid, key]) => setv(fid, r[key]));
+  if (!v('worker')) { try { setv('worker', localStorage.getItem('acLastWorker')); } catch (e) {} }
 
   const refSel = document.getElementById('refrigerant');
   const refOther = document.getElementById('refrigerant-other');
@@ -548,6 +600,8 @@ function resetForm() {
   addPartRow();
   clearSignInputDisplay();
   document.getElementById('refrigerant-other').style.display = 'none';
+  try { const w = localStorage.getItem('acLastWorker'); if (w) document.getElementById('worker').value = w; } catch (e) {}
+  showDraftBannerIfAny();
 }
 
 window.addPartRow = function(data) {
@@ -662,6 +716,7 @@ window.confirmSignPad = function() {
   document.getElementById('sign-preview-ph').style.display = 'none';
   document.getElementById('sign-preview').classList.add('signed');
   closeSignPad();
+  scheduleDraftSave();
 };
 window.clearSignInput = function() {
   currentSignDataUrl = '';
@@ -673,6 +728,195 @@ function clearSignInputDisplay() {
   document.getElementById('sign-preview-ph').style.display = '';
   document.getElementById('sign-preview').classList.remove('signed');
 }
+
+// ===== 過去の入力から選ぶ（症状・原因・作業内容）=====
+const PHRASE_FIELDS = {
+  'symptom':      { key: 'symptom',     label: '症状' },
+  'cause':        { key: 'cause',       label: '原因' },
+  'work-content': { key: 'workContent', label: '作業内容' },
+};
+let phraseTarget = '';
+let phraseList = [];
+
+// 過去の記録を1行ずつ分解し、よく使う順（同数なら新しい順）に並べる
+function getPhraseCandidates(fieldId) {
+  const key = PHRASE_FIELDS[fieldId].key;
+  const count = new Map(); const last = new Map();
+  allReports.forEach(r => {
+    const t = tsOf(r);
+    String(r[key] || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean).forEach(p => {
+      count.set(p, (count.get(p) || 0) + 1);
+      if (!(last.get(p) >= t)) last.set(p, t);
+    });
+  });
+  return Array.from(count.entries()).map(([text, n]) => ({ text, n, last: last.get(text) || 0 }))
+    .sort((x, y) => y.n - x.n || y.last - x.last);
+}
+
+window.openPhrasePicker = function(fieldId) {
+  phraseTarget = fieldId;
+  document.getElementById('phrase-title').textContent = PHRASE_FIELDS[fieldId].label + ' — 過去の入力から選ぶ';
+  document.getElementById('phrase-search').value = '';
+  phraseList = getPhraseCandidates(fieldId);
+  renderPhraseList();
+  document.getElementById('phrase-modal').classList.add('open');
+};
+window.closePhrasePicker = function(e) {
+  if (!e || e.target === document.getElementById('phrase-modal'))
+    document.getElementById('phrase-modal').classList.remove('open');
+};
+function currentLines(fieldId) {
+  return String(document.getElementById(fieldId).value || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+}
+window.renderPhraseList = function() {
+  const q = (document.getElementById('phrase-search').value || '').trim().toLowerCase();
+  const used = new Set(currentLines(phraseTarget));
+  const container = document.getElementById('phrase-list');
+  const items = phraseList.map((p, i) => ({ p, i })).filter(({ p }) => !q || p.text.toLowerCase().includes(q));
+  if (!items.length) {
+    container.innerHTML = '<div class="empty-state" style="padding:24px 0"><p>' + (phraseList.length ? '該当する候補がありません' : '過去の入力がまだありません') + '</p></div>';
+    return;
+  }
+  container.innerHTML = items.map(({ p, i }) =>
+    '<div class="phrase-item' + (used.has(p.text) ? ' added' : '') + '" onclick="addPhrase(' + i + ')">' +
+    '<span class="phrase-text">' + (used.has(p.text) ? '✓ ' : '') + esc(p.text) + '</span>' +
+    (p.n > 1 ? '<span class="phrase-count">×' + p.n + '</span>' : '') + '</div>'
+  ).join('');
+};
+window.addPhrase = function(i) {
+  const p = phraseList[i]; if (!p) return;
+  const el = document.getElementById(phraseTarget);
+  if (currentLines(phraseTarget).includes(p.text)) { showToast('すでに入力されています'); return; }
+  const cur = el.value.replace(/\s+$/, '');
+  el.value = (cur ? cur + '\n' : '') + p.text;
+  el.dispatchEvent(new Event('input', { bubbles: true })); // 下書き保存などを動かす
+  renderPhraseList();
+};
+
+// ===== 下書きの自動保存（電波が悪い・画面が閉じても入力が消えない）=====
+const DRAFT_KEY = 'acDraft:new';
+const DRAFT_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+let draftTimer = null;
+
+function formHasUserInput() {
+  const skip = new Set(['work-date', 'worker', 'status', 'doc-id']);
+  const fields = document.querySelectorAll('#report-form input[id], #report-form select[id], #report-form textarea[id]');
+  if (Array.from(fields).some(el => !skip.has(el.id) && el.value)) return true;
+  if (Array.from(document.querySelectorAll('.part-row input')).some(i => i.value)) return true;
+  return !!currentSignDataUrl;
+}
+function snapshotForm() {
+  const fields = {};
+  document.querySelectorAll('#report-form input[id], #report-form select[id], #report-form textarea[id]').forEach(el => {
+    if (el.id !== 'doc-id') fields[el.id] = el.value;
+  });
+  const parts = Array.from(document.querySelectorAll('.part-row')).map(row => Array.from(row.querySelectorAll('input')).map(i => i.value)).filter(p => p.some(v => v)); // 空の行は保存しない
+  return {
+    savedAt: Date.now(), fields, parts,
+    parentId: currentParentId || '',
+    sign: (currentSignDataUrl && currentSignDataUrl.startsWith('data:image/png')) ? currentSignDataUrl : '',
+    title: document.getElementById('form-title').textContent,
+  };
+}
+function saveDraft() {
+  if (currentReportId) return; // 編集中の記録は対象外（保存済みデータがあるため）
+  if (!document.getElementById('view-form').classList.contains('active')) return;
+  if (!formHasUserInput()) return;
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(snapshotForm())); } catch (e) { /* 容量不足などは無視 */ }
+}
+function scheduleDraftSave() { clearTimeout(draftTimer); draftTimer = setTimeout(saveDraft, 700); }
+function readDraft() {
+  try {
+    const s = localStorage.getItem(DRAFT_KEY); if (!s) return null;
+    const d = JSON.parse(s);
+    if (!d || !d.fields || Date.now() - (d.savedAt || 0) > DRAFT_MAX_AGE_MS) { localStorage.removeItem(DRAFT_KEY); return null; }
+    return d;
+  } catch (e) { return null; }
+}
+function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} clearTimeout(draftTimer); hideDraftBanner(); }
+function hideDraftBanner() { const b = document.getElementById('draft-banner'); if (b) b.style.display = 'none'; }
+function showDraftBannerIfAny() {
+  const d = readDraft(); const b = document.getElementById('draft-banner');
+  if (!b) return;
+  if (!d) { b.style.display = 'none'; return; }
+  const when = new Date(d.savedAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const who = d.fields['customer-name'] || d.fields['system-name'] || '';
+  document.getElementById('draft-banner-text').textContent = '📝 入力途中の下書きがあります（' + when + (who ? '・' + who : '') + '）';
+  b.style.display = '';
+}
+window.discardDraft = function() { clearDraft(); };
+window.restoreDraft = function() {
+  const d = readDraft(); if (!d) { hideDraftBanner(); return; }
+  currentReportId = null;
+  Object.keys(d.fields).forEach(id => { const el = document.getElementById(id); if (el) el.value = d.fields[id]; });
+  const list = document.getElementById('parts-list'); list.innerHTML = '';
+  (d.parts || []).forEach(p => addPartRow({ name: p[0], qty: p[1], unit: p[2], code: p[3] }));
+  if (!list.children.length) addPartRow();
+  const refSel = document.getElementById('refrigerant');
+  document.getElementById('refrigerant-other').style.display = refSel.value === 'その他' ? '' : 'none';
+  currentParentId = d.parentId || null;
+  if (d.title) document.getElementById('form-title').textContent = d.title;
+  if (d.sign) {
+    currentSignDataUrl = d.sign;
+    const img = document.getElementById('sign-preview-img');
+    img.src = d.sign; img.style.display = 'block';
+    document.getElementById('sign-preview-ph').style.display = 'none';
+    document.getElementById('sign-preview').classList.add('signed');
+  }
+  hideDraftBanner();
+  updateEquipHistory();
+  showToast('下書きを復元しました', 'success');
+};
+
+// ===== 同じ機器・系統の過去の対応（入力中に表示）=====
+const normKey = s => String(s || '').replace(/[\s\u3000]+/g, '').toLowerCase();
+const serialTokens = s => String(s || '').split(/[、,，\/／\s\u3000]+/).map(normKey).filter(t => t.length >= 3);
+let equipExpanded = false;
+
+function findEquipHistory() {
+  const serials = serialTokens(document.getElementById('serial').value);
+  const cust = normKey(document.getElementById('customer-name').value);
+  const sys = normKey(document.getElementById('system-name').value);
+  if (!serials.length && !(cust && sys)) return [];
+  return allReports.filter(r => {
+    if (r.id === currentReportId) return false;
+    if (serials.length && serialTokens(r.serial).some(t => serials.includes(t))) return true;
+    return !!(cust && sys && normKey(r.customerName) === cust && normKey(r.systemName) === sys);
+  }).sort((x, y) => tsOf(y) - tsOf(x));
+}
+window.toggleEquipMore = function() { equipExpanded = !equipExpanded; updateEquipHistory(); };
+function updateEquipHistory() {
+  const box = document.getElementById('equip-history'); if (!box) return;
+  const list = findEquipHistory();
+  if (!list.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const LIMIT = 3;
+  const shown = equipExpanded ? list : list.slice(0, LIMIT);
+  const brief = r => {
+    const t = [r.symptom, r.cause].map(s => String(s || '').replace(/\s+/g, ' ').trim()).filter(Boolean).join(' → ') || String(r.workContent || '').replace(/\s+/g, ' ').trim();
+    return t.length > 60 ? t.slice(0, 60) + '…' : t;
+  };
+  box.innerHTML = '<div class="equip-history-head">🕘 この機器・系統の過去の対応（' + list.length + '件）— タップで詳細</div>' +
+    shown.map(r =>
+      '<div class="equip-item" onclick="viewReport(\'' + r.id + '\', true)">' +
+      '<span class="eh-date">' + esc(formatDate(r.workDate)) + '</span>' +
+      '<span class="badge badge-' + esc(r.status) + '">' + esc(r.status || '—') + '</span>' +
+      '<span class="eh-text">' + esc(brief(r)) + '</span></div>'
+    ).join('') +
+    (list.length > LIMIT ? '<button type="button" class="equip-more" onclick="toggleEquipMore()">' + (equipExpanded ? '閉じる' : 'ほか' + (list.length - LIMIT) + '件を表示') + '</button>' : '');
+  box.style.display = '';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('report-form');
+  form.addEventListener('input', scheduleDraftSave);
+  form.addEventListener('change', scheduleDraftSave);
+  let eqTimer = null;
+  ['customer-name', 'system-name', 'serial'].forEach(id =>
+    document.getElementById(id).addEventListener('input', () => { clearTimeout(eqTimer); eqTimer = setTimeout(updateEquipHistory, 300); }));
+  // スマホでアプリを切り替えたり閉じたりする直前にも保存
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveDraft(); });
+  window.addEventListener('pagehide', saveDraft);
+});
 
 // ===== Helpers =====
 const v = id => (document.getElementById(id)?.value || '').trim();

@@ -63,8 +63,10 @@
             <option value="date">日付順表示</option>
           </select>
         </div>
+        <button class="btn btn-ghost" id="pending-btn" onclick="togglePending()">⏳ 対応待ち <span id="pending-count" class="pending-count"></span></button>
         <button class="btn btn-ghost" onclick="clearFilters()">クリア</button>
       </div>
+      <div id="pending-note" class="pending-note" style="display:none"></div>
       <div class="table-wrap">
         <table class="report-table">
           <thead>
@@ -92,6 +94,13 @@
       <div class="section-header">
         <h2 class="section-title" id="form-title">新規 点検・作業報告書</h2>
         <button class="btn btn-ghost" onclick="showView('list')">← 一覧に戻る</button>
+      </div>
+      <div id="draft-banner" class="draft-banner" style="display:none">
+        <span id="draft-banner-text">📝 入力途中の下書きがあります</span>
+        <span class="draft-actions">
+          <button type="button" class="btn btn-primary btn-sm" onclick="restoreDraft()">復元する</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="discardDraft()">破棄</button>
+        </span>
       </div>
       <form id="report-form" onsubmit="saveReport(event)">
         <input type="hidden" id="doc-id">
@@ -138,6 +147,7 @@
             <div class="form-group"><label class="form-label">冷媒戻し量 (kg)</label><input type="number" id="ref-return" class="form-input" step="0.01" min="0"></div>
             <div class="form-group"><label class="form-label">冷媒新規充填量 (kg)</label><input type="number" id="ref-fill" class="form-input" step="0.01" min="0"></div>
           </div>
+          <div id="equip-history" class="equip-history" style="display:none"></div>
         </div>
 
         <div class="card">
@@ -147,9 +157,9 @@
             <div class="form-group"><label class="form-label">作業開始</label><input type="time" id="work-start" class="form-input"></div>
             <div class="form-group"><label class="form-label">作業終了</label><input type="time" id="work-end" class="form-input"></div>
           </div>
-          <div class="form-group" style="margin-top:16px"><label class="form-label">発生状況 — 症状</label><textarea id="symptom" class="form-textarea" rows="3" placeholder="発生している症状を記入…"></textarea></div>
-          <div class="form-group"><label class="form-label">発生状況 — 原因</label><textarea id="cause" class="form-textarea" rows="3" placeholder="推定・確認された原因…"></textarea></div>
-          <div class="form-group"><label class="form-label">作業内容</label><textarea id="work-content" class="form-textarea" rows="5" placeholder="実施した作業の詳細…"></textarea></div>
+          <div class="form-group" style="margin-top:16px"><label class="form-label">発生状況 — 症状 <button type="button" class="phrase-btn" onclick="openPhrasePicker('symptom')">💡 過去の入力から選ぶ</button></label><textarea id="symptom" class="form-textarea" rows="3" placeholder="発生している症状を記入…"></textarea></div>
+          <div class="form-group"><label class="form-label">発生状況 — 原因 <button type="button" class="phrase-btn" onclick="openPhrasePicker('cause')">💡 過去の入力から選ぶ</button></label><textarea id="cause" class="form-textarea" rows="3" placeholder="推定・確認された原因…"></textarea></div>
+          <div class="form-group"><label class="form-label">作業内容 <button type="button" class="phrase-btn" onclick="openPhrasePicker('work-content')">💡 過去の入力から選ぶ</button></label><textarea id="work-content" class="form-textarea" rows="5" placeholder="実施した作業の詳細…"></textarea></div>
           <div class="form-group"><label class="form-label">備考</label><textarea id="remarks" class="form-textarea" rows="3"></textarea></div>
         </div>
 
@@ -211,6 +221,23 @@
   </section>
 
   <!-- Sign Pad Modal -->
+  <div id="phrase-modal" class="modal-overlay" onclick="closePhrasePicker(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="phrase-title">過去の入力から選ぶ</h3>
+        <button class="modal-close" onclick="closePhrasePicker()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--text-sub);margin:0 0 10px">タップで入力欄に追加します（よく使う順）。続けて複数選べます。</p>
+        <input type="text" id="phrase-search" class="form-input" placeholder="キーワードで絞り込み" style="margin-bottom:10px" oninput="renderPhraseList()">
+        <div id="phrase-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closePhrasePicker()">閉じる</button>
+      </div>
+    </div>
+  </div>
+
   <div id="sign-pad-modal" class="sign-modal-overlay">
     <div class="sign-modal-header">
       <span>お客様サインをお願いします</span>

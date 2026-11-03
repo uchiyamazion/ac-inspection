@@ -66,6 +66,7 @@ async function loadReports() {
   try {
     allReports = await gasCall({ action: 'list' });
     renderTable(allReports);
+    checkSchemaColumns();
     populateSuggestions();
     if (location.hash.length > 1) openFromHash();
   } catch (e) {
@@ -88,7 +89,7 @@ let lastRenderedReports = [];
 const siteToggleOverride = new Map(); // 現場名 -> 開いているか（手動で開閉した分）
 
 function isFilteringList() {
-  return !!(document.getElementById('search-site').value || document.getElementById('filter-month').value || document.getElementById('filter-status').value);
+  return !!(document.getElementById('search-site').value || document.getElementById('filter-month').value || document.getElementById('filter-status').value || document.getElementById('filter-parts').value);
 }
 
 function tsOf(r) { const t = new Date(r.workDate).getTime(); return isNaN(t) ? 0 : t; }
@@ -104,6 +105,11 @@ function elapsedBadge(r) {
   const d = daysSince(r.workDate);
   const cls = d >= 14 ? 'elapsed-late' : (d >= 7 ? 'elapsed-warn' : '');
   return '<span class="badge badge-elapsed ' + cls + '" style="white-space:nowrap" title="作業日から' + d + '日経過">経過' + d + '日</span>';
+}
+const TRACK_CLASS = { '発注連絡あり': '', '部品未手配': 't-unordered', '部品手配済': 't-ordered', '部品使用なし': 't-none' };
+function trackBadges(r) {
+  return [r.orderContact, r.partsStatus].filter(Boolean)
+    .map(t => '<span class="badge badge-track ' + (TRACK_CLASS[t] || '') + '">' + esc(t) + '</span>').join(' ');
 }
 function updatePendingUi() {
   const n = allReports.filter(isPendingRecord).length;
@@ -122,7 +128,7 @@ function buildRowHtml(r, inGroup) {
   const statusCell = '<span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span>' +
     (tip ? ' <span class="badge badge-' + esc(tip.status) + '" style="opacity:0.85;cursor:pointer;white-space:nowrap" title="続きの記録（' + esc(formatDate(tip.workDate)) + '）を見る" onclick="viewReport(\'' + tip.id + '\')">→ ' + esc(tip.status||'—') + '</span>' : '');
   // スマホでは右のステータス列まで横スクロールしないと見えないため、左の列にも小さく表示する（PCでは非表示）
-  const nameStatus = '<div class="name-status"><span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span>' + (isPendingRecord(r) ? elapsedBadge(r) : '') + '</div>';
+  const nameStatus = '<div class="name-status"><span class="badge badge-' + esc(r.status) + '">' + esc(r.status||'—') + '</span>' + (isPendingRecord(r) ? elapsedBadge(r) : '') + trackBadges(r) + '</div>';
   const nameCell = inGroup
     ? '<td style="padding-left:28px"><strong>' + esc(r.systemName||'—') + '</strong>' + nameStatus + '</td>'
     : '<td><strong>' + esc(r.customerName||'—') + '</strong><br><span style="color:var(--text-sub);font-size:11px">' + esc(r.systemName||'') + '</span>' + nameStatus + '</td>';
@@ -132,7 +138,7 @@ function buildRowHtml(r, inGroup) {
     '<td>' + esc(r.maker||'—') + '</td>' +
     '<td style="font-family:var(--mono);font-size:12px">' + esc(r.model||'—') + '</td>' +
     '<td>' + esc(r.refrigerant||'—') + '</td>' +
-    '<td>' + statusCell + (isPendingRecord(r) ? ' ' + elapsedBadge(r) : '') + '</td>' +
+    '<td>' + statusCell + (isPendingRecord(r) ? ' ' + elapsedBadge(r) : '') + (trackBadges(r) ? ' ' + trackBadges(r) : '') + '</td>' +
     '<td><div class="row-actions">' +
       '<button class="row-btn" onclick="viewReport(\'' + r.id + '\')">詳細</button>' +
       '<button class="row-btn" onclick="editReport(\'' + r.id + '\')">編集</button>' +
@@ -222,10 +228,12 @@ window.filterReports = function() {
   const site = document.getElementById('search-site').value.toLowerCase();
   const month = document.getElementById('filter-month').value;
   const status = document.getElementById('filter-status').value;
+  const track = document.getElementById('filter-parts').value;
   renderTable(allReports.filter(r =>
     (!site || (r.systemName||'').toLowerCase().includes(site) || (r.customerName||'').toLowerCase().includes(site)) &&
     (!month || (r.workDate||'').startsWith(month)) &&
-    (!status || r.status === status)
+    (!status || r.status === status) &&
+    (!track || (track === '発注連絡あり' ? r.orderContact === track : r.partsStatus === track))
   ));
 };
 window.clearFilters = function() {
@@ -234,6 +242,7 @@ window.clearFilters = function() {
   document.getElementById('search-site').value = '';
   document.getElementById('filter-month').value = '';
   document.getElementById('filter-status').value = '';
+  document.getElementById('filter-parts').value = '';
   renderTable(allReports);
 };
 
@@ -338,7 +347,46 @@ function collectFormData() {
     tempDischarge: vn('temp-discharge'), tempSuction: vn('temp-suction'),
     tempOutdoor: vn('temp-outdoor'), current: vn('current'),
     parts, status: v('status'), worker: v('worker'), parentId: currentParentId || '',
+    orderContact: v('order-contact'), partsStatus: v('parts-status'),
   };
+}
+
+// ===== 発注・部品の管理（詳細画面からワンタップで更新）=====
+function buildManageHtml(r) {
+  const chip = (field, val) => '<button type="button" class="chip' + (r[field] === val ? ' on' : '') + '" onclick="quickSet(\'' + field + '\',\'' + val + '\')">' + val + '</button>';
+  return '<div class="manage-box"><h4>発注・部品の管理</h4>' +
+    '<p class="manage-hint">タップするとその場で保存されます（もう一度押すと解除）</p>' +
+    '<div class="manage-row"><span class="manage-label">発注</span>' + chip('orderContact', '発注連絡あり') + '</div>' +
+    '<div class="manage-row"><span class="manage-label">部品</span>' + chip('partsStatus', '部品未手配') + chip('partsStatus', '部品手配済') + chip('partsStatus', '部品使用なし') + '</div></div>';
+}
+const TRACK_COLUMNS = ['orderContact', 'partsStatus'];
+window.quickSet = async function(field, value) {
+  const r = allReports.find(x => x.id === currentReportId); if (!r) return;
+  if (TRACK_COLUMNS.some(k => !(k in r))) { showToast('スプレッドシートに「orderContact」「partsStatus」列がないため保存できません', 'error', 6000); return; }
+  const next = r[field] === value ? '' : value; // 同じものをもう一度押すと解除
+  document.querySelectorAll('.manage-box .chip').forEach(b => b.disabled = true);
+  try {
+    // acUpdate は parts を必ず上書きするため、現在の部品を一緒に送る（他の項目は送らない＝そのまま保持される）
+    await gasCall({ action: 'update', payload: { id: r.id, parts: Array.isArray(r.parts) ? r.parts : [], [field]: next } });
+    r[field] = next;
+    showToast(next ? '「' + next + '」に更新しました' : '「' + value + '」を解除しました', 'success');
+  } catch (e) {
+    console.error('quickSet失敗:', e);
+    showToast('更新に失敗しました。通信状況を確認してもう一度お試しください', 'error', 5000);
+  }
+  if (currentReportId === r.id) viewReport(r.id); // 詳細を再描画
+  filterReports();                                  // 一覧にも反映
+};
+
+// 必須の列がスプレッドシートに無いと保存されない（エラーにならず値だけ捨てられる）ため、気づけるよう警告する
+const REQUIRED_COLUMNS = ['parentId', 'refReturn', 'orderContact', 'partsStatus'];
+function checkSchemaColumns() {
+  const box = document.getElementById('schema-warning'); if (!box) return;
+  const missing = allReports.length ? REQUIRED_COLUMNS.filter(k => !(k in allReports[0])) : [];
+  if (!missing.length) { box.style.display = 'none'; return; }
+  box.innerHTML = '⚠️ スプレッドシート「点検報告」の1行目に、次の列見出しを追加してください：<b>' + missing.map(esc).join('、') +
+    '</b><br>追加するまで、この項目は保存されません（綴り・大文字小文字は完全一致）。';
+  box.style.display = '';
 }
 
 // ===== 関連する対応履歴（parentIdで連なった一連の記録）=====
@@ -404,12 +452,13 @@ window.viewReport = function(id, readOnly) {
     const historyHtml = buildHistoryHtml(r, readOnly);
     document.getElementById('modal-body').innerHTML =
       historyHtml +
+      (readOnly ? '' : buildManageHtml(r)) +
       '<div class="detail-section"><h4>基本情報</h4><div class="detail-grid">' + df('お客様名',r.customerName) + df('ご住所',r.address) + df('ご依頼元',r.requester) + df('受付内容',r.reception) + '</div></div>' +
       '<div class="detail-section"><h4>機器情報</h4><div class="detail-grid">' + df('系統名',r.systemName) + df('品種',r.productType) + df('メーカー',r.maker) + df('型式',r.model,true) + df('製番',r.serial,true) + df('使用冷媒',r.refrigerant) + df('出荷時充填量',r.refShip!=null&&r.refShip!==''?r.refShip+' kg':'') + df('追加充填量',r.refAdd!=null&&r.refAdd!==''?r.refAdd+' kg':'') + df('冷媒回収量',r.refRecover!=null&&r.refRecover!==''?r.refRecover+' kg':'') + df('冷媒戻し量',r.refReturn!=null&&r.refReturn!==''?r.refReturn+' kg':'') + df('冷媒新規充填量',r.refFill!=null&&r.refFill!==''?r.refFill+' kg':'') + '</div></div>' +
       '<div class="detail-section"><h4>作業情報</h4><div class="detail-grid">' + df('作業日',formatDate(r.workDate)) + df('作業時間',r.workStart&&r.workEnd?formatTime(r.workStart)+'～'+formatTime(r.workEnd):'') + '</div>' + dft('症状',r.symptom) + dft('原因',r.cause) + dft('作業内容',r.workContent) + dft('備考',r.remarks) + '</div>' +
       '<div class="detail-section"><h4>運転データ</h4><div class="detail-grid">' + df('室内吸入温',r.tempIndoorIn!=null&&r.tempIndoorIn!==''?r.tempIndoorIn+' ℃':'',true) + df('室内吹出温',r.tempIndoorOut!=null&&r.tempIndoorOut!==''?r.tempIndoorOut+' ℃':'',true) + df('吐出圧力',r.pressDischarge!=null&&r.pressDischarge!==''?r.pressDischarge+' MPa':'',true) + df('吸入圧力',r.pressSuction!=null&&r.pressSuction!==''?r.pressSuction+' MPa':'',true) + df('吐出温',r.tempDischarge!=null&&r.tempDischarge!==''?r.tempDischarge+' ℃':'',true) + df('吸入温',r.tempSuction!=null&&r.tempSuction!==''?r.tempSuction+' ℃':'',true) + df('外気温',r.tempOutdoor!=null&&r.tempOutdoor!==''?r.tempOutdoor+' ℃':'',true) + df('運転電流',r.current!=null&&r.current!==''?r.current+' A':'',true) + '</div></div>' +
       partsHtml +
-      '<div class="detail-section"><h4>作業確認</h4><div class="detail-grid">' + df('ステータス',r.status) + df('作業者',r.worker) + '</div></div>' +
+      '<div class="detail-section"><h4>作業確認</h4><div class="detail-grid">' + df('ステータス',r.status) + df('発注連絡',r.orderContact) + df('部品の状況',r.partsStatus) + df('作業者',r.worker) + '</div></div>' +
       signHtml;
 
     const editBtn = document.getElementById('edit-btn');
@@ -546,11 +595,15 @@ window.continueReport = function(id) {
 window.editReport = function(id) {
   const r = allReports.find(x => x.id === id);
   if (!r) return;
+  document.getElementById('report-form').reset(); // 直前に開いた別の記録の値が、空欄の項目に残らないように
+  clearTimeout(draftTimer);
   currentReportId = id;
   currentParentId = r.parentId || null;
   document.getElementById('form-title').textContent = '点検・作業報告書 — 編集';
   const map = [['customer-name','customerName'],['address','address'],['requester','requester'],['reception','reception'],['system-name','systemName'],['product-type','productType'],['maker','maker'],['model','model'],['serial','serial'],['ref-ship','refShip'],['ref-add','refAdd'],['ref-recover','refRecover'],['ref-return','refReturn'],['ref-fill','refFill'],['symptom','symptom'],['cause','cause'],['work-content','workContent'],['remarks','remarks'],['temp-indoor-in','tempIndoorIn'],['temp-indoor-out','tempIndoorOut'],['press-discharge','pressDischarge'],['press-suction','pressSuction'],['temp-discharge','tempDischarge'],['temp-suction','tempSuction'],['temp-outdoor','tempOutdoor'],['current','current'],['status','status'],['worker','worker']];
   map.forEach(([fid, key]) => setv(fid, r[key]));
+  document.getElementById('order-contact').value = r.orderContact || '';
+  document.getElementById('parts-status').value = r.partsStatus || '';
   // 作業日・作業時間は生のISO日時文字列で返ることがあるため、input要素が受け付ける形式に変換してセット
   setv('work-date', toDateInputValue(r.workDate));
   setv('work-start', formatTime(r.workStart) !== '—' ? formatTime(r.workStart) : '');

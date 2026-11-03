@@ -481,6 +481,8 @@ partsList.forEach((p,i)=>{
   set('pu'+i,p.unit);
   set('pc'+i,p.code);
 });
+// 部品を使わなかった作業は、空欄(入力漏れ)と区別できるよう明記する
+if (data.partsStatus === '部品使用なし' && !partsList.length) set('pn0', '部品使用なし');
 
 // 作業確認（ステータス）
 const cb = document.getElementById('cb-'+(data.status||''));

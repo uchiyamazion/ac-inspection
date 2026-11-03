@@ -38,6 +38,7 @@
   <!-- List View -->
   <section id="view-list" class="view active">
     <div class="container">
+      <div id="schema-warning" class="schema-warning" style="display:none"></div>
       <div class="section-header">
         <h2 class="section-title">点検履歴</h2>
         <button class="btn btn-primary" onclick="showView('form')">＋ 新規作成</button>
@@ -55,6 +56,15 @@
             <option value="完了">完了</option>
             <option value="未完了">未完了</option>
             <option value="見積書提出">見積書提出</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <select id="filter-parts" class="filter-input" onchange="filterReports()">
+            <option value="">発注・部品（すべて）</option>
+            <option value="発注連絡あり">発注連絡あり</option>
+            <option value="部品未手配">部品未手配</option>
+            <option value="部品手配済">部品手配済</option>
+            <option value="部品使用なし">部品使用なし</option>
           </select>
         </div>
         <div class="filter-group">
@@ -194,6 +204,20 @@
               </select>
             </div>
             <div class="form-group"><label class="form-label">作業者</label><input type="text" id="worker" class="form-input"></div>
+            <div class="form-group"><label class="form-label">発注連絡</label>
+              <select id="order-contact" class="form-input">
+                <option value="">なし</option>
+                <option value="発注連絡あり">発注連絡あり</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">部品の状況</label>
+              <select id="parts-status" class="form-input">
+                <option value="">未設定</option>
+                <option value="部品未手配">部品未手配</option>
+                <option value="部品手配済">部品手配済</option>
+                <option value="部品使用なし">部品使用なし</option>
+              </select>
+            </div>
           </div>
 
           <!-- お客様サイン欄 -->

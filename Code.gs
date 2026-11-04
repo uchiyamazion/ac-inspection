@@ -214,19 +214,34 @@ function acDelete(payload) {
 }
 
 // 点検報告の充填・回収をfron側へ自動転記
+// 同じ報告書から転記済みの行を消してから入れ直すため、編集・再保存しても重複しない
 function autoTransferRefrigerant(data, reportId) {
   try {
+    // 充填・回収の項目が送られていない更新（ワンタップ更新など）は何もしない
+    if (data.refAdd === undefined && data.refRecover === undefined) return;
+
+    const sh = sheet('充填・回収記録');
+    if (!sh) return;
+
+    // 同じ報告書の転記済み行を削除（下から消す）。報告書IDの列は見出し reportId、無ければ8列目(H列)
+    const last = sh.getLastRow();
+    if (last > 1) {
+      const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+      let col = headers.indexOf('reportId');
+      col = col >= 0 ? col + 1 : 8;
+      const ids = sh.getRange(2, col, last - 1, 1).getValues();
+      for (let i = ids.length - 1; i >= 0; i--) {
+        if (ids[i][0] == reportId) sh.deleteRow(i + 2);
+      }
+    }
+
     const refAdd = parseFloat(data.refAdd) || 0;
     const refRecover = parseFloat(data.refRecover) || 0;
     if (refAdd === 0 && refRecover === 0) return;
 
     const refrigerant = data.refrigerant || '';
     const date = data.workDate ? new Date(data.workDate) : new Date();
-    const eqKey = (data.customerName || '') + '|' + (data.systemName || '') + '|' + (data.serial || '');
     const eqId = findOrCreateEquipment(data);
-
-    const sh = sheet('充填・回収記録');
-    if (!sh) return;
 
     if (refAdd > 0) {
       sh.appendRow([

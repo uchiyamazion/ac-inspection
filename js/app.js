@@ -106,10 +106,10 @@ function elapsedBadge(r) {
   const cls = d >= 14 ? 'elapsed-late' : (d >= 7 ? 'elapsed-warn' : '');
   return '<span class="badge badge-elapsed ' + cls + '" style="white-space:nowrap" title="作業日から' + d + '日経過">経過' + d + '日</span>';
 }
-const TRACK_CLASS = { '発注連絡あり': '', '部品未手配': 't-unordered', '部品手配済': 't-ordered', '部品使用なし': 't-none' };
+const TRACK_CLASS = { '発注連絡あり': '', '部品未手配': 't-unordered', '部品手配済': 't-ordered', '部品使用なし': 't-none', '見積未提出': 't-unordered', '見積提出済': 't-ordered', '見積不要': 't-none' };
 function trackBadges(r) {
-  return [r.orderContact, r.partsStatus].filter(Boolean)
-    .map(t => '<span class="badge badge-track ' + (TRACK_CLASS[t] || '') + '">' + esc(t) + '</span>').join(' ');
+  return [r.orderContact, r.partsStatus, r.estimateStatus].filter(Boolean)
+    .map(t => '<span class="badge badge-track ' + (TRACK_CLASS[t] || '') + '">' + esc(t) + (t === '見積提出済' && r.estimateDate ? '（' + esc(formatDate(r.estimateDate).slice(5)) + '）' : '') + '</span>').join(' ');
 }
 function updatePendingUi() {
   const n = allReports.filter(isPendingRecord).length;
@@ -229,11 +229,13 @@ window.filterReports = function() {
   const month = document.getElementById('filter-month').value;
   const status = document.getElementById('filter-status').value;
   const track = document.getElementById('filter-parts').value;
+  const est = document.getElementById('filter-estimate').value;
   renderTable(allReports.filter(r =>
     (!site || (r.systemName||'').toLowerCase().includes(site) || (r.customerName||'').toLowerCase().includes(site)) &&
     (!month || (r.workDate||'').startsWith(month)) &&
     (!status || r.status === status) &&
-    (!track || (track === '発注連絡あり' ? r.orderContact === track : r.partsStatus === track))
+    (!track || (track === '発注連絡あり' ? r.orderContact === track : r.partsStatus === track)) &&
+    (!est || r.estimateStatus === est)
   ));
 };
 window.clearFilters = function() {
@@ -243,6 +245,7 @@ window.clearFilters = function() {
   document.getElementById('filter-month').value = '';
   document.getElementById('filter-status').value = '';
   document.getElementById('filter-parts').value = '';
+  document.getElementById('filter-estimate').value = '';
   renderTable(allReports);
 };
 
@@ -348,6 +351,7 @@ function collectFormData() {
     tempOutdoor: vn('temp-outdoor'), current: vn('current'),
     parts, status: v('status'), worker: v('worker'), parentId: currentParentId || '',
     orderContact: v('order-contact'), partsStatus: v('parts-status'),
+    estimateStatus: v('estimate-status'), estimateDate: v('estimate-date'),
   };
 }
 
@@ -357,18 +361,27 @@ function buildManageHtml(r) {
   return '<div class="manage-box"><h4>発注・部品の管理</h4>' +
     '<p class="manage-hint">タップするとその場で保存されます（もう一度押すと解除）</p>' +
     '<div class="manage-row"><span class="manage-label">発注</span>' + chip('orderContact', '発注連絡あり') + '</div>' +
-    '<div class="manage-row"><span class="manage-label">部品</span>' + chip('partsStatus', '部品未手配') + chip('partsStatus', '部品手配済') + chip('partsStatus', '部品使用なし') + '</div></div>';
+    '<div class="manage-row"><span class="manage-label">部品</span>' + chip('partsStatus', '部品未手配') + chip('partsStatus', '部品手配済') + chip('partsStatus', '部品使用なし') + '</div>' +
+    '<div class="manage-row"><span class="manage-label">見積</span>' + chip('estimateStatus', '見積未提出') + chip('estimateStatus', '見積提出済') + chip('estimateStatus', '見積不要') + '</div>' +
+    (r.estimateStatus === '見積提出済' ? '<div class="manage-row"><span class="manage-label">提出日</span><input type="date" id="manage-estimate-date" class="form-input manage-date" value="' + esc(toDateInputValue(r.estimateDate)) + '" onclick="openPicker(this)" onchange="quickSetEstimateDate(this.value)"></div>' : '') + '</div>';
 }
-const TRACK_COLUMNS = ['orderContact', 'partsStatus'];
+const TRACK_COLUMNS = ['orderContact', 'partsStatus', 'estimateStatus', 'estimateDate'];
+function localToday() { return toDateInputValue(new Date()); }
+// カレンダーを開く（未対応のブラウザは標準動作に任せる）
+window.openPicker = function(el) { try { if (el && el.showPicker) el.showPicker(); } catch (e) {} };
 window.quickSet = async function(field, value) {
   const r = allReports.find(x => x.id === currentReportId); if (!r) return;
-  if (TRACK_COLUMNS.some(k => !(k in r))) { showToast('スプレッドシートに「orderContact」「partsStatus」列がないため保存できません', 'error', 6000); return; }
+  const missing = TRACK_COLUMNS.filter(k => !(k in r));
+  if (missing.length) { showToast('スプレッドシートに「' + missing.join('」「') + '」列がないため保存できません', 'error', 6000); return; }
   const next = r[field] === value ? '' : value; // 同じものをもう一度押すと解除
+  // 見積提出済にしたら提出日（今日）も一緒に記録、解除・変更時は提出日を消す
+  const extra = {};
+  if (field === 'estimateStatus') extra.estimateDate = next === '見積提出済' ? (toDateInputValue(r.estimateDate) || localToday()) : '';
   document.querySelectorAll('.manage-box .chip').forEach(b => b.disabled = true);
   try {
     // acUpdate は parts を必ず上書きするため、現在の部品を一緒に送る（他の項目は送らない＝そのまま保持される）
-    await gasCall({ action: 'update', payload: { id: r.id, parts: Array.isArray(r.parts) ? r.parts : [], [field]: next } });
-    r[field] = next;
+    await gasCall({ action: 'update', payload: { id: r.id, parts: Array.isArray(r.parts) ? r.parts : [], [field]: next, ...extra } });
+    r[field] = next; Object.assign(r, extra);
     showToast(next ? '「' + next + '」に更新しました' : '「' + value + '」を解除しました', 'success');
   } catch (e) {
     console.error('quickSet失敗:', e);
@@ -376,10 +389,26 @@ window.quickSet = async function(field, value) {
   }
   if (currentReportId === r.id) viewReport(r.id); // 詳細を再描画
   filterReports();                                  // 一覧にも反映
+  if (field === 'estimateStatus' && r.estimateStatus === '見積提出済') setTimeout(() => openPicker(document.getElementById('manage-estimate-date')), 150); // 日付を直せるようカレンダーを開く
+};
+
+// 詳細画面で提出日だけ変更
+window.quickSetEstimateDate = async function(value) {
+  const r = allReports.find(x => x.id === currentReportId); if (!r || !value) return;
+  try {
+    await gasCall({ action: 'update', payload: { id: r.id, parts: Array.isArray(r.parts) ? r.parts : [], estimateDate: value } });
+    r.estimateDate = value;
+    showToast('見積提出日を ' + value.replace(/-/g, '/') + ' にしました', 'success');
+  } catch (e) {
+    console.error('見積提出日の更新失敗:', e);
+    showToast('更新に失敗しました。通信状況を確認してもう一度お試しください', 'error', 5000);
+  }
+  if (currentReportId === r.id) viewReport(r.id);
+  filterReports();
 };
 
 // 必須の列がスプレッドシートに無いと保存されない（エラーにならず値だけ捨てられる）ため、気づけるよう警告する
-const REQUIRED_COLUMNS = ['parentId', 'refReturn', 'orderContact', 'partsStatus'];
+const REQUIRED_COLUMNS = ['parentId', 'refReturn', 'orderContact', 'partsStatus', 'estimateStatus', 'estimateDate'];
 function checkSchemaColumns() {
   const box = document.getElementById('schema-warning'); if (!box) return;
   const missing = allReports.length ? REQUIRED_COLUMNS.filter(k => !(k in allReports[0])) : [];
@@ -458,7 +487,7 @@ window.viewReport = function(id, readOnly) {
       '<div class="detail-section"><h4>作業情報</h4><div class="detail-grid">' + df('作業日',formatDate(r.workDate)) + df('作業時間',r.workStart&&r.workEnd?formatTime(r.workStart)+'～'+formatTime(r.workEnd):'') + '</div>' + dft('症状',r.symptom) + dft('原因',r.cause) + dft('作業内容',r.workContent) + dft('備考',r.remarks) + '</div>' +
       '<div class="detail-section"><h4>運転データ</h4><div class="detail-grid">' + df('室内吸入温',r.tempIndoorIn!=null&&r.tempIndoorIn!==''?r.tempIndoorIn+' ℃':'',true) + df('室内吹出温',r.tempIndoorOut!=null&&r.tempIndoorOut!==''?r.tempIndoorOut+' ℃':'',true) + df('吐出圧力',r.pressDischarge!=null&&r.pressDischarge!==''?r.pressDischarge+' MPa':'',true) + df('吸入圧力',r.pressSuction!=null&&r.pressSuction!==''?r.pressSuction+' MPa':'',true) + df('吐出温',r.tempDischarge!=null&&r.tempDischarge!==''?r.tempDischarge+' ℃':'',true) + df('吸入温',r.tempSuction!=null&&r.tempSuction!==''?r.tempSuction+' ℃':'',true) + df('外気温',r.tempOutdoor!=null&&r.tempOutdoor!==''?r.tempOutdoor+' ℃':'',true) + df('運転電流',r.current!=null&&r.current!==''?r.current+' A':'',true) + '</div></div>' +
       partsHtml +
-      '<div class="detail-section"><h4>作業確認</h4><div class="detail-grid">' + df('ステータス',r.status) + df('発注連絡',r.orderContact) + df('部品の状況',r.partsStatus) + df('作業者',r.worker) + '</div></div>' +
+      '<div class="detail-section"><h4>作業確認</h4><div class="detail-grid">' + df('ステータス',r.status) + df('発注連絡',r.orderContact) + df('部品の状況',r.partsStatus) + df('見積',r.estimateStatus ? r.estimateStatus + (r.estimateStatus === '見積提出済' && r.estimateDate ? '（' + formatDate(r.estimateDate) + '）' : '') : '') + df('作業者',r.worker) + '</div></div>' +
       signHtml;
 
     const editBtn = document.getElementById('edit-btn');
@@ -604,6 +633,8 @@ window.editReport = function(id) {
   map.forEach(([fid, key]) => setv(fid, r[key]));
   document.getElementById('order-contact').value = r.orderContact || '';
   document.getElementById('parts-status').value = r.partsStatus || '';
+  document.getElementById('estimate-status').value = r.estimateStatus || '';
+  document.getElementById('estimate-date').value = toDateInputValue(r.estimateDate);
   // 作業日・作業時間は生のISO日時文字列で返ることがあるため、input要素が受け付ける形式に変換してセット
   setv('work-date', toDateInputValue(r.workDate));
   setv('work-start', formatTime(r.workStart) !== '—' ? formatTime(r.workStart) : '');
@@ -962,6 +993,13 @@ function updateEquipHistory() {
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('report-form');
   form.addEventListener('input', scheduleDraftSave);
+  // 見積提出日：欄をタップでカレンダー表示。「見積提出済」を選んだら今日の日付を入れてカレンダーを開く
+  const estDate = document.getElementById('estimate-date');
+  estDate.addEventListener('click', () => openPicker(estDate));
+  document.getElementById('estimate-status').addEventListener('change', function() {
+    if (this.value === '見積提出済') { if (!estDate.value) estDate.value = localToday(); openPicker(estDate); }
+    else if (this.value !== '') estDate.value = '';
+  });
   form.addEventListener('change', scheduleDraftSave);
   let eqTimer = null;
   ['customer-name', 'system-name', 'serial'].forEach(id =>

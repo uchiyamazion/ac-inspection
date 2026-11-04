@@ -68,6 +68,14 @@
           </select>
         </div>
         <div class="filter-group">
+          <select id="filter-estimate" class="filter-input" onchange="filterReports()">
+            <option value="">見積（すべて）</option>
+            <option value="見積未提出">見積未提出</option>
+            <option value="見積提出済">見積提出済</option>
+            <option value="見積不要">見積不要</option>
+          </select>
+        </div>
+        <div class="filter-group">
           <select id="list-mode" class="filter-input" onchange="filterReports()">
             <option value="site">現場ごと表示</option>
             <option value="date">日付順表示</option>
@@ -217,6 +225,17 @@
                 <option value="部品手配済">部品手配済</option>
                 <option value="部品使用なし">部品使用なし</option>
               </select>
+            </div>
+            <div class="form-group"><label class="form-label">見積の状況</label>
+              <select id="estimate-status" class="form-input">
+                <option value="">未設定</option>
+                <option value="見積未提出">見積未提出</option>
+                <option value="見積提出済">見積提出済</option>
+                <option value="見積不要">見積不要</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">見積提出日 <span class="sign-hint">（タップでカレンダー）</span></label>
+              <input type="date" id="estimate-date" class="form-input">
             </div>
           </div>
 
